@@ -14,8 +14,13 @@
 <!--	<script src="/packloader/et/etpackLoader.js"></script>-->
 
 	<script type="module">
-		import { PL } from "/packloader/kh/packLoader.js";
-		PL.loadPack("/p/OoA.zip");
+		import { extracted, loadPack } from "/packloader/kh/packLoader.js";
+		loadPack("/p/OoA.zip");
+
+		import { testMaps, testImages, testItems } from "/packloader/kh/testStuff.js";
+		testMaps(100)
+		testItems(200)
+		testImages(300, extracted)
 	</script>
 </head>
 
