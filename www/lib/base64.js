@@ -1,4 +1,4 @@
-function bytesToBase64(b){
+export function bytesToBase64(b){
 	let r='',i,l=b.length,abc="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 	for (i=2;i<l;i+=3){
 		r+=abc[b[i-2]>>2]

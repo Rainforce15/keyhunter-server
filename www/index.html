@@ -8,24 +8,18 @@
 	<link rel="shortcut icon" type="image/x-icon" href="/img/logo/keyhunter3.png">
 	<script src="/serverConnection.js"></script>
 
-	<!-- Keyhunter pack loader -->
-	<script src="/lib/base64.js"></script>
-	<script src="/lib/jszip.min.js"></script>
-	<script src="/lib/js-yaml.min.js"></script>
-	<script src="/packloader/kh/packLoader.js"></script>
-
 	<!-- ET pack loader -->
-	<script src="/lib/fengari-web.js"></script>
-	<script src="/luaFrame.js"></script>
-	<script src="/packloader/et/etpackLoader.js"></script>
+<!--	<script src="/lib/fengari-web.js"></script>-->
+<!--	<script src="/luaFrame.js"></script>-->
+<!--	<script src="/packloader/et/etpackLoader.js"></script>-->
 
-	<script type="text/JavaScript">
-		//pl.loadPack("/p/OoA.zip");
-		//etpl.loadPack("/p/ooa.zip");
+	<script type="module">
+		import { PL } from "/packloader/kh/packLoader.js";
+		PL.loadPack("/p/OoA.zip");
 	</script>
 </head>
 
-<body id="body" onload="">
+<body>
 <div style="display:inline-block;position:fixed;top:0;left:0;background:rgba(0,0,0,0.75);z-index:1;padding:8px;border-radius:0 0 8px 0;" id="mainProgressBars">
 	downloaded:<br>
 	<div class="progressBarFrame"><div id="dlpb" class="progressBar"></div></div><span id="dl" style=" margin: 4px; display: inline-block;vertical-align: bottom;"></span><br>

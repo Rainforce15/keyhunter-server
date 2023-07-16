@@ -1,4 +1,10 @@
-let pl = new function pl () {
+import JSZip from "/lib/jszip.min.js"
+import jsyaml from "/lib/js-yaml.min.js"
+import { bytesToBase64 } from "/lib/base64.js"
+
+let body, dl, dlpb, ex2, ex2pb, conv, convpb, mainProgressBars
+
+let PL = new function pl () {
 	function formatPerc(a,b) {
 		return Math.round(a/b*10000)/100+"%"
 	}
@@ -13,7 +19,6 @@ let pl = new function pl () {
 	let exStart
 
 	let items
-	let itemsIndex
 	let maps
 
 	let logPackLoader = false
@@ -22,8 +27,8 @@ let pl = new function pl () {
 	}
 
 	function Utf8ArrayToStr(array) {
-		var out, i, len, c
-		var char2, char3
+		let out, i, len, c
+		let char2, char3
 		out = ""
 		len = array.length
 		i = 0
@@ -61,7 +66,7 @@ let pl = new function pl () {
 		//let jsonStr = cleanJSON(Utf8ArrayToStr(array))
 		//return JSON.parse(jsonStr)
 		let yamlStr = Utf8ArrayToStr(array).replace(/\t/g, " "); //lol yaml
-		return yamlTest = jsyaml.safeLoad(yamlStr)
+		return jsyaml.safeLoad(yamlStr)
 	}
 
 	//do not worry dear, we are magically fixing everything that is naturally wrong with you. (a.k.a. your parents were like "lol what json spec")
@@ -75,9 +80,18 @@ let pl = new function pl () {
 	}
 
 	function loadPack(url) {
+		body = document.body
+		dl = document.getElementById("dl")
+		dlpb = document.getElementById("dlpb")
+		ex2 = document.getElementById("ex2")
+		ex2pb = document.getElementById("ex2pb")
+		conv = document.getElementById("conv")
+		convpb = document.getElementById("convpb")
+		mainProgressBars = document.getElementById("mainProgressBars")
+
 		console.log("loading from "+url)
 		extracted = {}
-		var request = new XMLHttpRequest()
+		let request = new XMLHttpRequest()
 		request.responseType = 'blob'
 		request.addEventListener("progress", e => {
 			let perc = formatPerc(e.loaded,e.total)
@@ -85,7 +99,7 @@ let pl = new function pl () {
 			dl.innerHTML = perc+((e.loaded/e.total === 1)?" (in "+((new Date())-dlStart)/1000+"s)":"")
 			dlpb.style.width = perc
 		})
-		request.addEventListener("readystatechange", e => {
+		request.addEventListener("readystatechange", _ => {
 			if (request.readyState === 2 && request.status === 200) {
 				log("started DL...")
 			} else if (request.readyState === 3) {
@@ -104,25 +118,24 @@ let pl = new function pl () {
 	this.loadPack = loadPack
 
 	function unpack(blob) {
-		var zip = new JSZip()
+		let zip = new JSZip()
 		zip.loadAsync(blob).then(zipData => {
 			log("zip loaded, data:")
 			log(zipData)
 			filesMeta = zipData.files
-			let count = 0
 			filesTotal = Object.keys(filesMeta).length
 			currentExtracted = 0
 			
 			fileSizeTotal = 0
 			currentSizeExtracted = 0
-			for (file in filesMeta) {
+			for (let file in filesMeta) {
 				if (filesMeta[file]._data && filesMeta[file]._data.uncompressedSize) {
 					fileSizeTotal += filesMeta[file]._data.uncompressedSize
 				}
 			}
 			log("total size: "+fileSizeTotal)
 			exStart = new Date()
-			for (file in filesMeta) {
+			for (let file in filesMeta) {
 				if (!filesMeta[file].dir) {
 					(f =>
 						zipData.file(f).async("uint8array").then(data => {
@@ -163,18 +176,18 @@ let pl = new function pl () {
 		let maxEx = Object.keys(extracted).length
 		let curEx = 0
 		let exStart = new Date()
-		for (key in extracted) {
+		for (let key in extracted) {
 			let fileData = extracted[key]
-			if (key.substr(-4) === ".png" && fileData[1] === 0x50 && fileData[2] === 0x4E && fileData[3] === 0x47) {
-				extracted[key] = "data:image/png;base64, "+bytesToBase64(fileData)
+			if (key.substring(key.length - 4) === ".png" && fileData[1] === 0x50 && fileData[2] === 0x4E && fileData[3] === 0x47) {
+				extracted[key] = "data:image/png;base64, " + bytesToBase64(fileData)
 			}
-			else if (key.substr(-4) === ".gif" && fileData[0] === 0x47 && fileData[1] === 0x49 && fileData[2] === 0x46 && fileData[3] === 0x38 && fileData[5] === 0x61) {
-				extracted[key] = "data:image/gif;base64, "+bytesToBase64(fileData)
+			else if (key.substring(key.length - 4) === ".gif" && fileData[0] === 0x47 && fileData[1] === 0x49 && fileData[2] === 0x46 && fileData[3] === 0x38 && fileData[5] === 0x61) {
+				extracted[key] = "data:image/gif;base64, " + bytesToBase64(fileData)
 			}
-			else if ((key.substr(-4) === ".jpg" || key.substr(-4) === ".jpeg") && fileData[0] === 0xFF && fileData[1] === 0xD8 && fileData[2] === 0xFF) {
-				extracted[key] = "data:image/jpeg;base64, "+bytesToBase64(fileData)
+			else if ((key.substring(key.length - 4) === ".jpg" || key.substring(key.length - 4) === ".jpeg") && fileData[0] === 0xFF && fileData[1] === 0xD8 && fileData[2] === 0xFF) {
+				extracted[key] = "data:image/jpeg;base64, " + bytesToBase64(fileData)
 			}
-			else if (key.substr(-5) === ".json") {
+			else if (key.substring(key.length - 5) === ".json") {
 				try {
 					extracted[key] = utf8ArrayToYaml(fileData)
 				} catch(e) {
@@ -186,7 +199,7 @@ let pl = new function pl () {
 					JSONerror = e
 				}
 			}
-			else if (key.substr(-5) === ".yaml") {
+			else if (key.substring(key.length - 5) === ".yaml") {
 				try {
 					extracted[key] = utf8ArrayToYaml(fileData)
 				} catch(e) {
@@ -342,10 +355,10 @@ let pl = new function pl () {
 		let ret = null
 		if (typeof n === "string") {
 			let numString = n
-			if (n[0] === "-") numString = n.substr(1)
-			if (numString.substr(0,2) === "0b") ret = parseInt(numString.substr(2), 2)
-			else if (numString.substr(0,2) === "0o") ret = parseInt(numString.substr(2), 8)
-			else if (numString.substr(0,2) === "0x") ret = parseInt(numString.substr(2), 16)
+			if (n[0] === "-") numString = n.substring(1)
+			if (numString.substring(0, 2) === "0b") ret = parseInt(numString.substring(2), 2)
+			else if (numString.substring(0, 2) === "0o") ret = parseInt(numString.substring(2), 8)
+			else if (numString.substring(0, 2) === "0x") ret = parseInt(numString.substring(2), 16)
 			else ret = parseInt(numString, 16)
 			ret *=  ((n[0] === "-")?-1:1)
 		} else if (typeof n === "number") {
@@ -366,7 +379,7 @@ let pl = new function pl () {
 		log("adding ", address)
 		if (!memGroups[memType]) memGroups[memType] = []
 		let group = memGroups[memType]
-		for (var i = 0; i < group.length; i++) {
+		for (let i = 0; i < group.length; i++) {
 			//XX..[[]]  [[]]..  
 			if (i === 0 && address < group[0][0] - groupdistance) {
 				group.unshift([address, address])
@@ -403,11 +416,13 @@ let pl = new function pl () {
 	}
 
 	function parseAllFlagsAndIndex(mem) {
-		if (mem) for (memType in mem) {
-			let memList = mem[memType]
-			if (memList.or) memList = memList.or
-			for (let i = 0; i < memList.length; i++) {
-				parseFlagAndIndex(memList[i], memType)
+		if (mem) {
+			for (let memType in mem) {
+				let memList = mem[memType]
+				if (memList.or) memList = memList.or
+				for (let i = 0; i < memList.length; i++) {
+					parseFlagAndIndex(memList[i], memType)
+				}
 			}
 		}
 	}
@@ -429,29 +444,29 @@ let pl = new function pl () {
 	}
 
 	function applyBaseRendername(obj) {
-		for (key in obj) {
+		for (let key in obj) {
 			let entry = obj[key]
-			if (entry == undefined) continue
+			if (entry === undefined) continue
 			entry.basename = key
 			entry.rendername = key.replace(/ /g,"_")
 		}
 	}
 	function applyTemplates(obj, templateSource, type) {
 		if (!templateSource) templateSource = obj
-		for (key in obj) {
+		for (let key in obj) {
 			let entry = obj[key]
-			if (entry == undefined) continue
+			if (entry === undefined) continue
 			if (entry.t) entry.template = entry.t
 			if (!entry.template) continue
 			if (typeof entry.template === "string") entry.template = [entry.template]
-			for (templateName of entry.template) {
-				let template = templateSource["__"+templateName]
+			for (let templateName of entry.template) {
+				let template = templateSource["__" + templateName]
 				if (!template) {
 					console.error("no template found for key: ", templateName)
 					console.log("templateSource: ", templateSource)
 				}
 				if (template.template) entry.template = [...entry.template, ...template.template]
-				for (tKey in template) {
+				for (let tKey in template) {
 					if (entry[tKey] === undefined) entry[tKey] = JSON.parse(JSON.stringify(template[tKey]))
 				}
 				if (type === "item") {
@@ -461,8 +476,8 @@ let pl = new function pl () {
 						let oldMem = entry.mem
 						delete entry.mem
 						entry.stages = JSON.parse(JSON.stringify(template.stages))
-						for (stage of entry.stages) {
-							for (memType in stage.mem) {
+						for (let stage of entry.stages) {
+							for (let memType in stage.mem) {
 								for (let i = 0; i < stage.mem[memType].length; i++) {
 									let flag = stage.mem[memType][i]
 									if (hasMemValue(oldMem, memType, i, 0)) flag[0] = oldMem[memType][i][0]
@@ -477,7 +492,7 @@ let pl = new function pl () {
 							let stage = entry.stages[stageIndex]
 							
 							if (stage.mem) {
-								for (memType in stage.mem) {
+								for (let memType in stage.mem) {
 									for (let flagIndex = 0; flagIndex < stage.mem[memType].length; flagIndex++) {
 										let flag = stage.mem[memType][flagIndex]
 										if (entry.mem && entry.mem[memType]) {
@@ -495,26 +510,30 @@ let pl = new function pl () {
 										}
 									}
 								}
-								if (entry.mem) for (memType in entry.mem) {
-									if (!stage.mem[memType]) stage.mem[memType] = entry.mem[memType]
+								if (entry.mem) {
+									for (let memType in entry.mem) {
+										if (!stage.mem[memType]) stage.mem[memType] = entry.mem[memType]
+									}
 								}
 							}
 						}
 					}
 					
 					// --regular mem--
-					for (memKey of ["mem", "countMem", "forceMem"]) {
-						for (memType in entry[memKey]) {
+					for (let memKey of ["mem", "countMem", "forceMem"]) {
+						for (let memType in entry[memKey]) {
 							for (let flagIndex = 0; flagIndex < entry[memKey][memType].length; flagIndex++) {
 								let flag = entry[memKey][memType][flagIndex]
-								if (entry.template) for (innerTemplateName of entry.template) {
-									let innerTemplate = templateSource["__"+innerTemplateName]
-									if (innerTemplate) {
-										if (!flag[0] && hasMemValue(innerTemplate[memKey], memType, flagIndex, 0)) {
-											flag[0] = innerTemplate[memKey][memType][flagIndex][0]
-										}
-										if (!flag[1] && hasMemValue(innerTemplate[memKey], memType, flagIndex, 1)) {
-											flag[1] = innerTemplate[memKey][memType][flagIndex][1]
+								if (entry.template) {
+									for (let innerTemplateName of entry.template) {
+										let innerTemplate = templateSource["__"+innerTemplateName]
+										if (innerTemplate) {
+											if (!flag[0] && hasMemValue(innerTemplate[memKey], memType, flagIndex, 0)) {
+												flag[0] = innerTemplate[memKey][memType][flagIndex][0]
+											}
+											if (!flag[1] && hasMemValue(innerTemplate[memKey], memType, flagIndex, 1)) {
+												flag[1] = innerTemplate[memKey][memType][flagIndex][1]
+											}
 										}
 									}
 								}
@@ -527,21 +546,27 @@ let pl = new function pl () {
 	}
 
 	function parseItemMemStringsAndIndex(items) {
-		for (itemName in items) { //fix shortcuts
+		for (let itemName in items) { //fix shortcuts
 			let item = items[itemName]
-			for (memKey of ["mem", "countMem", "forceMem"]) {
-				if (item[memKey]) for (memType in item[memKey]) {
-					if (Array.isArray(item[memKey][memType]) && !Array.isArray(item[memKey][memType][0])) item[memKey][memType] = [item[memKey][memType]]
+			for (let memKey of ["mem", "countMem", "forceMem"]) {
+				if (item[memKey]) {
+					for (let memType in item[memKey]) {
+						if (Array.isArray(item[memKey][memType]) && !Array.isArray(item[memKey][memType][0])) item[memKey][memType] = [item[memKey][memType]]
+					}
 				}
 			}
-			if (item.stages) for (stage of item.stages) {
-				if (stage.mem) for (memType in stage.mem) {
-					if (Array.isArray(stage.mem[memType]) && !Array.isArray(stage.mem[memType][0])) stage.mem[memType] = [stage.mem[memType]]
+			if (item.stages) {
+				for (let stage of item.stages) {
+					if (stage.mem) {
+						for (let memType in stage.mem) {
+							if (Array.isArray(stage.mem[memType]) && !Array.isArray(stage.mem[memType][0])) stage.mem[memType] = [stage.mem[memType]]
+						}
+					}
 				}
 			}
 		}
 		applyTemplates(items, items, "item")
-		for (itemName in items) {
+		for (let itemName in items) {
 			let item = items[itemName]
 			//if (itemName.substr(0,2) === "__") continue
 			if (item.countMap) {
@@ -571,15 +596,17 @@ let pl = new function pl () {
 
 			//parsing, indexing
 			if (item.stages) {
-				for (stage of item.stages) parseAllFlagsAndIndex(stage.mem)
+				for (let stage of item.stages) parseAllFlagsAndIndex(stage.mem)
 			}
-			for (memKey of ["mem", "countMem", "forceMem"]) parseAllFlagsAndIndex(item[memKey])
+			for (let memKey of ["mem", "countMem", "forceMem"]) {
+				parseAllFlagsAndIndex(item[memKey])
+			}
 		}
 		//final group test pass
 		
-		for (memType in memGroups) {
+		for (let memType in memGroups) {
 			let group = memGroups[memType]
-			for (var i = 0; i < group.length - 1; i++) {
+			for (let i = 0; i < group.length - 1; i++) {
 				if (i > 0 && group[i-1][1] >= group[i][0] - groupdistance) {
 					if (group[i-1][1] < group[i][1]) group[i-1][1] = group[i][1]
 					group.splice(i,1)
@@ -600,13 +627,13 @@ let pl = new function pl () {
 		}
 		console.log("loading items...")
 		console.log(items)
-		for (itemName in items) {
+		for (let itemName in items) {
 			if (!items[itemName]) items[itemName] = {}
 		}
 		applyBaseRendername(items)
 		applyTemplates(items)
 		parseItemMemStringsAndIndex(items)
-		for (itemName in items) {
+		for (let itemName in items) {
 			items[itemName].imgDomRefs = []
 			items[itemName].titleDomRefs = []
 		}
@@ -624,7 +651,7 @@ let pl = new function pl () {
 			loc[attribute] = {}
 			loc[attribute][oriConnection] = []
 		}
-		for (connectionName in loc[attribute]) {
+		for (let connectionName in loc[attribute]) {
 			let connectionNameParts = connectionName.split(/::/)
 			if (connectionNameParts.length > 2) console.warn("couldn't parse loc reference: "+connectionName)
 			let connectionMap = connectionNameParts.length > 1?maps[connectionNameParts[0]]:map
@@ -644,7 +671,7 @@ let pl = new function pl () {
 				target[backAttribute][locName] = fixUpReq(target[backAttribute][locName])
 				let backConnectionData = target[backAttribute][locName]
 				backConnectionData.ref = loc
-				for (requirement of connectionData) {
+				for (let requirement of connectionData) {
 					if (backConnectionData.indexOf(requirement) === -1) backConnectionData.push(requirement)
 				}
 			}
@@ -678,7 +705,7 @@ let pl = new function pl () {
 				obj.height = obj.wh[1]
 			}
 		}
-		for (subType of ["", "Factor", "Offset", "2", "2Factor", "2Offset"]) {
+		for (let subType of ["", "Factor", "Offset", "2", "2Factor", "2Offset"]) {
 			if (typeof obj["xy"+subType] === "number" || typeof obj["xy"+subType] === "string") {
 				obj["x"+subType] = obj["xy"+subType]
 				obj["y"+subType] = obj["xy"+subType]
@@ -694,12 +721,12 @@ let pl = new function pl () {
 		console.log("loading maps...")
 		console.log(maps)
 		applyBaseRendername(maps)
-		for (mapName in maps) {
+		for (let mapName in maps) {
 			let map = maps[mapName]
 			if (map.parts) {
 				applyTemplates(map.parts, maps.__templates.parts)
 				applyBaseRendername(map.parts)
-				for (partName in map.parts) {
+				for (let partName in map.parts) {
 					map.parts[partName].parentMapName = map.basename
 					map.parts[partName].domRefs = []
 					extractXYWH(map.parts[partName])
@@ -709,9 +736,9 @@ let pl = new function pl () {
 			if (map.locations) {
 				applyTemplates(map.locations, maps.__templates.locations)
 				applyBaseRendername(map.locations)
-				for (locName in map.locations) {
+				for (let locName in map.locations) {
 					let locData = map.locations[locName]
-					if (locData == undefined) {
+					if (locData === undefined) {
 						console.error("Empty Location:", locName)
 						continue
 					}
@@ -721,7 +748,7 @@ let pl = new function pl () {
 					if (locData.items) {
 						if (typeof locData.items === "string") locData.items = [locData.items]
 						for (let i = 0; i < locData.items.length; i++) {
-							if (locData.items[i] === "@" && locName.substr(0,2) !== "__") locData.items[i] = locName
+							if (locData.items[i] === "@" && locName.substring(0, 2) !== "__") locData.items[i] = locName
 						}
 						locData.itemsLeft = locData.items.length
 
@@ -740,19 +767,19 @@ let pl = new function pl () {
 		checkPaths()
 		pathMaps()
 		let lostLocs = []
-		for (mapName in maps) {
+		for (let mapName in maps) {
 			let map = maps[mapName]
 			if (map.locations) {
-				for (locName in map.locations) {
+				for (let locName in map.locations) {
 					let locData = map.locations[locName]
-					if (locData == undefined) continue
+					if (locData === undefined) continue
 					if (!locData.connectedToEntryPoint) {
 						lostLocs.push(mapName+"::"+locName)
 					}
 				}
 			}
 		}
-		if (lostLocs.filter(e=>e.substr(0,2) !== "__").length > 0) console.warn("unconnected location(s): "+lostLocs.filter(e=>e.substr(0,2) !== "__").join(", "))
+		if (lostLocs.filter(e=>e.substring(0, 2) !== "__").length > 0) console.warn("unconnected location(s): "+lostLocs.filter(e=>e.substring(0, 2) !== "__").join(", "))
 
 		console.log(maps)
 		console.log("done")
@@ -760,9 +787,9 @@ let pl = new function pl () {
 
 	function readItemData() {
 		//update mem
-		for (memType in newMem) {
+		for (let memType in newMem) {
 		console.log("type: "+memType, newMem)
-			for (memLoc of newMem[memType]) {
+			for (let memLoc of newMem[memType]) {
 				//console.log("sending:", JSON.stringify({o:"write_u8", a:memLoc[0], v:memLoc[1], d:memType}))
 				let payload = JSON.stringify({o:"write_u8", a:memLoc[0], v:memLoc[1], d:memType})
 				console.log("payload: "+payload)
@@ -772,9 +799,9 @@ let pl = new function pl () {
 		newMem = {}
 
 		//fetch new data
-		for (memType in memGroups) {
+		for (let memType in memGroups) {
 			let group = memGroups[memType]
-			for(var i = 0; i < group.length; i++) {
+			for(let i = 0; i < group.length; i++) {
 				let payload = JSON.stringify({o:"readbyterange", l:group[i][1] - group[i][0] + 1, a:group[i][0], d:memType})
 				if (isSocketOpen()) socket.send(payload)
 			}
@@ -797,14 +824,14 @@ let pl = new function pl () {
 			memIndex[parsedMsg.d][parsedMsg.a] = parsedMsg.v
 		}
 		else if (memIndex[parsedMsg.d] && parsedMsg.l && parsedMsg.l === parsedMsg.v.length) {
-			for (var i = 0; i < parsedMsg.l; i++) {
+			for (let i = 0; i < parsedMsg.l; i++) {
 				memIndex[parsedMsg.d][parsedMsg.a+i] = parsedMsg.v[i]
 			}
 		}
 	}
 
 	function updateAllItemData() {
-		for (itemName in items) {
+		for (let itemName in items) {
 			updateItemData(items[itemName])
 		}
 	}
@@ -864,7 +891,7 @@ let pl = new function pl () {
 					item.curStage = stageNumber
 				}
 			}
-			if (item.curStage === 0 && item.noStageAlert && item.basename.substr(0,2) !== "__") {
+			if (item.curStage === 0 && item.noStageAlert && item.basename.substring(0, 2) !== "__") {
 				//console.log(JSON.stringify(memIndex, null, "  "))
 				//alert("Unknown value for "+item.basename+". Dumping memory into console and moving on.")
 			}
@@ -872,11 +899,11 @@ let pl = new function pl () {
 			let memType = Object.keys(item.countMem)[0]
 			let locMemIndex = memIndex[memType]
 			item.curStage = 0
-			for(var i = 0; i < item.countMem[memType].length; i++) {
+			for(let i = 0; i < item.countMem[memType].length; i++) {
 				let val = locMemIndex[item.countMem[memType][i][0]]
 				if (item.countMap) {
 					let offset = 8 * i
-					for (var j = 0; j < 8; j++) {
+					for (let j = 0; j < 8; j++) {
 						if (((val << j) & 0x80) === 0x80) {
 							item.curStage += item.countMap[offset + j]
 						}
@@ -927,8 +954,8 @@ let pl = new function pl () {
 	}
 
 	function evaluateSumSub(sumList, subList, min, max) {
-		if (sumList == undefined || !Array.isArray(sumList)) sumList = []
-		if (subList == undefined || !Array.isArray(subList)) subList = []
+		if (sumList === undefined || !Array.isArray(sumList)) sumList = []
+		if (subList === undefined || !Array.isArray(subList)) subList = []
 
 		let sum = 0
 
@@ -936,8 +963,8 @@ let pl = new function pl () {
 			if (typeof sumList[i] === "number") {
 				sum += sumList[i]
 			} else if (sumList[i][0] === "!") {
-				if (items[sumList[i].substr(1)] == undefined) console.log("unknown item:", sumList[i].substr(1))
-				sum += items[sumList[i].substr(1)].curStage === 0 ? 1 : 0
+				if (items[sumList[i].substring(1)] === undefined) console.log("unknown item:", sumList[i].substring(1))
+				sum += items[sumList[i].substring(1)].curStage === 0 ? 1 : 0
 			} else {
 				sum += items[sumList[i]].curStage
 			}
@@ -950,8 +977,8 @@ let pl = new function pl () {
 			}
 		}
 		
-		if (max != undefined && sum > max) return max
-		if (min != undefined && sum < min) return min
+		if (max !== undefined && sum > max) return max
+		if (min !== undefined && sum < min) return min
 		return sum
 	}
 
@@ -975,15 +1002,15 @@ let pl = new function pl () {
 			} else if (typeof val === "string") {
 				if (val === "") return item.curStage > 0
 				if (val[0] === ">") {
-					let valDesc = val.substr(1)
+					let valDesc = val.substring(1)
 					let num = parseInt(valDesc)
 					return item.curStage > (isNaN(num)?findStageForString(item, valDesc):num)
 				} else if (val[0] === "<") {
-					let valDesc = val.substr(1)
+					let valDesc = val.substring(1)
 					let num = parseInt(valDesc)
 					return item.curStage < (isNaN(num)?findStageForString(item, valDesc):num)
 				} else if (val[0] === "!") {
-					let valDesc = val.substr(1)
+					let valDesc = val.substring(1)
 					let num = parseInt(valDesc)
 					return item.curStage !== (isNaN(num)?findStageForString(item, valDesc):num)
 				} else {
@@ -1012,7 +1039,7 @@ let pl = new function pl () {
 	}
 
 	function updateAllItemRender() {
-		for (itemName in items) {
+		for (let itemName in items) {
 			if (items[itemName].delayUpdate) {
 				items[itemName].delayUpdate = false
 				return
@@ -1037,19 +1064,19 @@ let pl = new function pl () {
 		console.log("Pathing Check ...")
 		let entryPoints = []
 		console.log("clearing connectedToEntryPoint")
-		for (mapName in maps) {
+		for (let mapName in maps) {
 			let map = maps[mapName]
 			if (map.locations) {
-				for (locName in map.locations) {
+				for (let locName in map.locations) {
 					let loc = map.locations[locName]
-					if (loc == undefined) continue
+					if (loc === undefined) continue
 					loc.connectedToEntryPoint = false
 					if (loc.entryPoint) entryPoints.push([map, loc])
 				}
 			}
 		}
 		console.log("validating...")
-		for (entryPoint of entryPoints) {
+		for (let entryPoint of entryPoints) {
 			let loc = entryPoint[1]
 			checkConnections(loc)
 		}
@@ -1057,10 +1084,10 @@ let pl = new function pl () {
 	function checkConnections(loc) {
 		if (!loc.connectedToEntryPoint) {
 			loc.connectedToEntryPoint = true
-			for (connectionName in loc.connectsTo) {
+			for (let connectionName in loc.connectsTo) {
 				if (loc.connectsTo[connectionName].ref) checkConnections(loc.connectsTo[connectionName].ref)
 			}
-			for (connectionName in loc.connectsOneWayTo) {
+			for (let connectionName in loc.connectsOneWayTo) {
 				if (loc.connectsOneWayTo[connectionName].ref) checkConnections(loc.connectsOneWayTo[connectionName].ref)
 			}
 		}
@@ -1074,12 +1101,12 @@ let pl = new function pl () {
 	function pathMaps() {
 		let entryPoints = []
 		//clear pathing
-		for (mapName in maps) {
+		for (let mapName in maps) {
 			let map = maps[mapName]
 			if (map.locations) {
-				for (locName in map.locations) {
+				for (let locName in map.locations) {
 					let loc = map.locations[locName]
-					if (loc == undefined) continue
+					if (loc === undefined) continue
 					loc.pathingStatus = 0
 					if (isEntryPoint(loc)) entryPoints.push([map, loc])
 				}
@@ -1087,19 +1114,19 @@ let pl = new function pl () {
 		}
 		if (debugPathing) console.log("Detected Entry Points: ", entryPoints.map(e=>e[0].basename+"::"+e[1].basename).join(",  "))
 		//go forth and take the land
-		for (entryPoint of entryPoints) {
+		for (let entryPoint of entryPoints) {
 			let loc = entryPoint[1]
 			if (debugPathing) console.log("starting from: ", loc.basename)
 			pathCount = 0
 			pathConnections(loc)
 		}
 		//round up the remainders
-		for (mapName in maps) {
+		for (let mapName in maps) {
 			let map = maps[mapName]
 			if (map.locations) {
-				for (locName in map.locations) {
+				for (let locName in map.locations) {
 					let loc = map.locations[locName]
-					if (loc == undefined) continue
+					if (loc === undefined) continue
 					if (loc.pathingStatus === 0) loc.pathingStatus = -1
 				}
 			}
@@ -1111,7 +1138,7 @@ let pl = new function pl () {
 			if (typeof loc.entryPoint === "boolean") {
 				return loc.entryPoint
 			} else {
-				for (factors of loc.entryPoint) {
+				for (let factors of loc.entryPoint) {
 					if (evaluateAnd(factors, "entryPoint of "+loc.basename)) {
 						return true
 					}
@@ -1137,7 +1164,7 @@ let pl = new function pl () {
 		if (loc.pathingStatus && (loc.pathingStatus === 1 || loc.pathingStatus === 2 && prev.pathingStatus !== 1)) {
 			if (debugPathing) {
 				console.log(indent+"["+pathDebugName+"]  early escape - pathingStatus: ", loc.pathingStatus, "["+(++pathCount)+"]")
-				indent = indent.substr(4)
+				indent = indent.substring(4)
 			}
 			return loc.pathingStatus === 1
 		}
@@ -1168,7 +1195,7 @@ let pl = new function pl () {
 		}
 		if (debugPathing) {
 			console.log(indent+"["+loc.parentMapName+"::"+loc.basename+"] resulting pathingStatus: ", (prev?prev.pathingStatus:"x")+"/", originalStatus, "->", loc.pathingStatus, "["+(++pathCount)+"]")
-			indent = indent.substr(4)
+			indent = indent.substring(4)
 		}
 		return loc.pathingStatus === 1
 	}
@@ -1176,7 +1203,7 @@ let pl = new function pl () {
 	function checkTwoWayConnections(loc, indent) {
 		let conCount = 0
 		if (debugPathing && loc.connectsTo) console.log(indent+"  two-way connections: "+Object.keys(loc.connectsTo).length, "["+(++pathCount)+"]")
-		for (connectionName in loc.connectsTo || []) {
+		for (let connectionName in loc.connectsTo || []) {
 			let connectionData = loc.connectsTo[connectionName]
 			if (connectionData.ref) {
 				if (debugPathing) console.log(indent+"  "+(++conCount)+"/"+Object.keys(loc.connectsTo).length+" "+connectionData.ref.parentMapName+"::"+connectionData.ref.basename, "["+(++pathCount)+"]")
@@ -1184,7 +1211,7 @@ let pl = new function pl () {
 					pathConnections(connectionData.ref, loc)
 				} else {
 					let factorsFound = false
-					for (factors of connectionData) {
+					for (let factors of connectionData) {
 						if (evaluateAnd(factors, "connectsTo "+connectionName+" of "+loc.basename)) {
 							pathConnections(connectionData.ref, loc)
 							factorsFound = true
@@ -1205,7 +1232,7 @@ let pl = new function pl () {
 	function checkOneWayConnections(loc, oneWayPropagation, indent) {
 		let conCount = 0
 		if (debugPathing && loc.connectsOneWayTo) console.log(indent+"  "+"one-way connections: "+Object.keys(loc.connectsOneWayTo).length, "["+(++pathCount)+"]")
-		for (connectionName in loc.connectsOneWayTo || []) {
+		for (let connectionName in loc.connectsOneWayTo || []) {
 			if (debugPathing) console.log(indent+"  "+(++conCount)+"/"+Object.keys(loc.connectsOneWayTo).length+" "+connectionName, "["+(++pathCount)+"]")
 			let connectionData = loc.connectsOneWayTo[connectionName]
 			if (connectionData.ref) {
@@ -1219,7 +1246,7 @@ let pl = new function pl () {
 				if (connectionData.length === 0) {
 					oneWayPropagation = checkOneWayLoop(connectionData.ref, loc, indent)
 				} else {
-					for (factors of connectionData) {
+					for (let factors of connectionData) {
 						if (evaluateAnd(factors, "connectsOneWayTo "+connectionName+" of "+loc.basename)) {
 							oneWayPropagation = checkOneWayLoop(connectionData.ref, loc, indent)
 							break
@@ -1247,7 +1274,7 @@ let pl = new function pl () {
 	}
 	function pathAllSub(connections, loc, indent) {
 		let conCount = 0
-		for (connectionName in connections) {
+		for (let connectionName in connections) {
 			let connectionData = connections[connectionName]
 			if (connectionData.ref) {
 				if (debugPathing) console.log(indent+"  "+(++conCount)+"/"+Object.keys(connections).length+" "+connectionData.ref.parentMapName+"::"+connectionData.ref.basename, "["+(++pathCount)+"]")
@@ -1255,7 +1282,7 @@ let pl = new function pl () {
 					pathConnections(connectionData.ref, loc)
 				} else {
 					let factorsFound = false
-					for (factors of connectionData) {
+					for (let factors of connectionData) {
 						if (evaluateAnd(factors, "connectsTo "+connectionName+" of "+loc.basename)) {
 							pathConnections(connectionData.ref, loc)
 							factorsFound = true
@@ -1271,16 +1298,16 @@ let pl = new function pl () {
 	function updateAllMapData() {
 		pathMaps()
 		
-		for (mapName in maps) {
+		for (let mapName in maps) {
 			let map = maps[mapName]
 			if (map.locations) {
-				for (locName in map.locations) {
+				for (let locName in map.locations) {
 					let locData = map.locations[locName]
-					if (locData == undefined) continue
+					if (locData === undefined) continue
 					if (locData.items) {
 						let oldItemsLeft = locData.itemsLeft
 						locData.itemsLeft = 0
-						for (item of locData.items) {
+						for (let item of locData.items) {
 							if (!evaluateEntry(item, undefined, "itemsLeft count of "+locData.basename)) locData.itemsLeft++
 						}
 						if (locData.pathingStatus === -1 && locData.itemsLeft < locData.items.length && oldItemsLeft !== locData.itemsLeft) {
@@ -1294,25 +1321,29 @@ let pl = new function pl () {
 	}
 
 	function updateAllMapRender() {
-		for (mapName in maps) {
+		for (let mapName in maps) {
 			updateMapRender(maps[mapName])
 		}
 	}
 	function updateMapRender(map) {
-		if (map.parts) for (partName in map.parts) {
-			let part = map.parts[partName]
-			let mapImgs = part.domRefs
-			log(mapImgs)
-			for(let i = 0; i < mapImgs.length; i++) {
-				setDataForMapPart(part, mapImgs[i])
+		if (map.parts) {
+			for (let partName in map.parts) {
+				let part = map.parts[partName]
+				let mapImgs = part.domRefs
+				log(mapImgs)
+				for(let i = 0; i < mapImgs.length; i++) {
+					setDataForMapPart(part, mapImgs[i])
+				}
 			}
 		}
-		if (map.locations) for (locName in map.locations) {
-			let locData = map.locations[locName]
-			if (locData == undefined) continue
-			let locImgs = locData.domRefs
-			for (locImg of locImgs) {
-				setDataForMapLoc(locData, locImg)
+		if (map.locations) {
+			for (let locName in map.locations) {
+				let locData = map.locations[locName]
+				if (locData === undefined) continue
+				let locImgs = locData.domRefs
+				for (let locImg of locImgs) {
+					setDataForMapLoc(locData, locImg)
+				}
 			}
 		}
 	}
@@ -1329,8 +1360,8 @@ let pl = new function pl () {
 		setTimeout(() => {
 			let testImagesDiv = document.createElement("div")
 			addTestHeader("Image Test", testImagesDiv)
-			for(exf in extracted) {
-				if (exf.substr(0,4)==="img/" && (exf.substr(-4) === ".png" || exf.substr(-4) === ".gif" || exf.substr(-4) === ".jpg" || exf.substr(-4) === ".jpeg")) {
+			for(let exf in extracted) {
+				if (exf.substring(0,4)==="img/" && (exf.substring(-4) === ".png" || exf.substring(-4) === ".gif" || exf.substring(-4) === ".jpg" || exf.substring(-4) === ".jpeg")) {
 					let newImg = document.createElement("img")
 					newImg.setAttribute("src", extracted[exf])
 					newImg.setAttribute("width", "32px")
@@ -1366,7 +1397,7 @@ let pl = new function pl () {
 	function setTitleForStage(item, title) {
 		let isOff = !item.noOffStage && item.curStage === 0
 		title.setAttribute("style", "user-select: none; color: "+(isOff?"gray":"lightgray"))
-		let curName = "UNDEFINED"
+		let curName
 		if (!item.name && !item.stages && item.curStage < 2) curName = item.basename
 		else if (item.name && !item.stages && item.curStage < 2) {
 			curName = item.name
@@ -1386,7 +1417,7 @@ let pl = new function pl () {
 		else if (item.name && item.name.indexOf("%%") > -1) {
 			if (item.curStage === 0) {
 				if (item.template) {
-					for (templateName of item.template) {
+					for (let templateName of item.template) {
 						if (items["__"+templateName] && items["__"+templateName].name) {
 							ret = item.name.replace("%%", items["__"+templateName].name)
 							break
@@ -1473,11 +1504,13 @@ let pl = new function pl () {
 		if (desiredStage >= minStage && desiredStage <= maxStage) {
 			//console.log("valid!")
 			updateGameItemState(item, desiredStage)
-			if (item.maxCaps) for (itemName of item.maxCaps) {
-				let cappedItem = items[itemName]
-				let capValue = getCapValue(item)
-				if (cappedItem.curStage > capValue || item.fillOnUpgrade) {
-					adjustStage(cappedItem, capValue - cappedItem.curStage)
+			if (item.maxCaps) {
+				for (let itemName of item.maxCaps) {
+					let cappedItem = items[itemName]
+					let capValue = getCapValue(item)
+					if (cappedItem.curStage > capValue || item.fillOnUpgrade) {
+						adjustStage(cappedItem, capValue - cappedItem.curStage)
+					}
 				}
 			}
 		} else {
@@ -1506,9 +1539,9 @@ let pl = new function pl () {
 	}
 	
 	function deactivateMemEntries(mems) {
-		for (memType in mems) {
+		for (let memType in mems) {
 			if (Array.isArray(mems[memType])) {
-				for (memLoc of mems[memType]) {
+				for (let memLoc of mems[memType]) {
 					let oldVal = memIndex[memType][memLoc[0]]
 					let newVal
 					newVal = oldVal & (memLoc[1] ^ 0xFF)
@@ -1520,9 +1553,9 @@ let pl = new function pl () {
 		}
 	}
 	function activateMemEntries(mems) {
-		for (memType in mems) {
+		for (let memType in mems) {
 			if (Array.isArray(mems[memType])) {
-				for (memLoc of mems[memType]) {
+				for (let memLoc of mems[memType]) {
 					let oldVal = memIndex[memType][memLoc[0]]
 					console.log(oldVal)
 					let newVal
@@ -1603,23 +1636,23 @@ let pl = new function pl () {
 		setTimeout(() => {
 			let testDiv = document.createElement("div")
 			addTestHeader("Item Test", testDiv)
-			itemGroups = {}
-			for (itemName in items) {
+			let itemGroups = {}
+			for (let itemName in items) {
 				//if (itemName.substr(0,2) === "__") continue
 				let item = items[itemName]
-				let groupName = item.template && item.template[item.template.length-1] || (item.basename.substr(0,2) === "__"?"__hidden":"(no template)")
+				let groupName = item.template && item.template[item.template.length-1] || (item.basename.substring(0, 2) === "__"?"__hidden":"(no template)")
 				if (["__hidden", "ring", "chest", "chestPast"].includes(groupName)) continue
 				if (!itemGroups[groupName]) itemGroups[groupName] = []
 				itemGroups[groupName].push(item)
 			}
-			for (group in itemGroups) {
+			for (let group in itemGroups) {
 				let groupDiv = document.createElement("div")
 				groupDiv.setAttribute("style", "display: inline-block; vertical-align: top; margin: 8px;")
 				let h2 = document.createElement("h2")
 				h2.appendChild(document.createTextNode(group))
 				groupDiv.appendChild(h2)
 				
-				for (item of itemGroups[group]) {
+				for (let item of itemGroups[group]) {
 					if (item.img || item.stages && item.stages[0].img) {
 						groupDiv.appendChild(generateImageForItem(item))
 						groupDiv.appendChild(document.createTextNode(" "))
@@ -1638,8 +1671,8 @@ let pl = new function pl () {
 		setTimeout(() => {
 			let testDiv = document.createElement("div")
 			addTestHeader("Map Test", testDiv)
-			for (mapName in maps) {
-				if (mapName.substr(0,2) === "__") continue
+			for (let mapName in maps) {
+				if (mapName.substring(0, 2) === "__") continue
 				let subDiv = document.createElement("div")
 				subDiv.setAttribute("style", "display:inline-block;margin:8px;")
 				let h2 = document.createElement("h2")
@@ -1703,17 +1736,17 @@ let pl = new function pl () {
 		style += getStyleXYWHV(locData)
 		if (locData.pathingStatus === -1) {
 			let imgData = locData.imgOff || locData.img
-			if (imgData) imgData = img.setAttribute("src", extracted["img/"+imgData])
+			if (imgData) img.setAttribute("src", extracted["img/"+imgData])
 			else img.setAttribute("src", "imgerror.png")
 			if (!locData.imgOff) style += "filter: grayscale(66%);"
 		}else if (locData.pathingStatus === 1 && !locData.itemsLeft) {
 			let imgData = locData.img
-			if (imgData) imgData = img.setAttribute("src", extracted["img/"+imgData])
+			if (imgData) img.setAttribute("src", extracted["img/"+imgData])
 			else img.setAttribute("src", "imgerror.png")
 			style += "filter: grayscale(100%);"
 		} else if (locData.pathingStatus > 0) {
 			let imgData = locData.img
-			if (imgData) imgData = img.setAttribute("src", extracted["img/"+imgData])
+			if (imgData) img.setAttribute("src", extracted["img/"+imgData])
 			else img.setAttribute("src", "imgerror.png")
 		}
 		if (!showEverything && (locData.pathingStatus < 1 || !locData.itemsLeft)) style += "visibility: hidden;"
@@ -1734,7 +1767,7 @@ let pl = new function pl () {
 		let yDiff = y2 - y
 		let len = Math.sqrt(Math.pow(xDiff,2) + Math.pow(yDiff,2))
 		let angle = Math.atan2(yDiff, xDiff) / Math.PI * 180
-		let renderX = x + xDiff/2 - len/2;len
+		let renderX = x + xDiff/2 - len/2;
 		let renderY = y - 1 + yDiff/2
 		lineDiv.setAttribute("style", baseStyle+"width:"+len+"px;left:"+renderX+"px;top:"+renderY+"px;transform:rotate("+angle+"deg);")
 		lineDiv.setAttribute("class", "map_line "+classString)
@@ -1743,10 +1776,11 @@ let pl = new function pl () {
 	}
 	
 	function generateLineData(locData, connectionAttribute, parent) {
+		let locName = locData.basename
 		if (!locData.hasLine) locData.hasLine = {}
-		for (conName in locData[connectionAttribute]) {
+		for (let conName in locData[connectionAttribute]) {
 			let conRef = locData[connectionAttribute][conName] && locData[connectionAttribute][conName].ref
-			if (conRef == undefined) console.warn("no ref?", locData.basename, connectionAttribute, conName)
+			if (conRef === undefined) console.warn("no ref?", locData.basename, connectionAttribute, conName)
 			let nameOrder = [locData.rendername, conRef.rendername].sort()
 			let connectionClassName = "map_line_"+nameOrder[0]+"__"+nameOrder[1]
 			if (conRef && !conRef.hasLine) conRef.hasLine = {}
@@ -1784,47 +1818,57 @@ let pl = new function pl () {
 		let mapDiv = document.createElement("div")
 		mapDiv.setAttribute("style", "position: relative; display: inline-block; overflow: hidden")
 		mapDiv.setAttribute("class", "__mapFrame")
-		if (map.parts) for (mapPart in map.parts) {
-			let partData = map.parts[mapPart]
-			if (partData.top) continue
-			let mapImgElement = document.createElement("img")
-			mapImgElement.setAttribute("class", "map_img_"+map.rendername+"__"+partData.rendername)
-			setDataForMapPart(partData, mapImgElement)
-			partData.domRefs.push(mapImgElement)
-			mapDiv.appendChild(mapImgElement)
+		if (map.parts) {
+			for (let mapPart in map.parts) {
+				let partData = map.parts[mapPart]
+				if (partData.top) continue
+				let mapImgElement = document.createElement("img")
+				mapImgElement.setAttribute("class", "map_img_"+map.rendername+"__"+partData.rendername)
+				setDataForMapPart(partData, mapImgElement)
+				partData.domRefs.push(mapImgElement)
+				mapDiv.appendChild(mapImgElement)
+			}
 		}
 		
-		if (map.locations) for (locName in map.locations) {
-			let locData = map.locations[locName]
-			if (locData == undefined) continue
-			if (locData.connectsTo) {
-				generateLineData(locData, "connectsTo", mapDiv)
-				generateLineData(locData, "connectsOneWayTo", mapDiv)
-			}
-			if (locData.img) {
-				let locElement = document.createElement("img")
-				locElement.setAttribute("class", "map_location map_img_"+map.rendername+"__"+locData.rendername)
-				locData.conDesc =  (locData.connectsTo?"connects to:\n    "+generateConDesc(locData, "connectsTo")+"\n":"")+
-				(locData.connectsOneWayTo?"connects oneway to:\n    " + generateConDesc(locData, "connectsOneWayTo")+"\n":"") +
-				(locData.connectsOneWayFrom?"connects oneway from:\n    " + generateConDesc(locData, "connectsOneWayFrom"):"")
+		if (map.locations) {
+			for (let locName in map.locations) {
+				let locData = map.locations[locName]
+				if (locData === undefined) continue
+				if (locData.connectsTo) {
+					console.log(locName)
+					console.log(locData)
+					generateLineData(locData, "connectsTo", mapDiv)
+					generateLineData(locData, "connectsOneWayTo", mapDiv)
+				}
+				if (locData.img) {
+					let locElement = document.createElement("img")
+					locElement.setAttribute("class", "map_location map_img_"+map.rendername+"__"+locData.rendername)
+					locData.conDesc =  (locData.connectsTo?"connects to:\n    "+generateConDesc(locData, "connectsTo")+"\n":"")+
+						(locData.connectsOneWayTo?"connects oneway to:\n    " + generateConDesc(locData, "connectsOneWayTo")+"\n":"") +
+						(locData.connectsOneWayFrom?"connects oneway from:\n    " + generateConDesc(locData, "connectsOneWayFrom"):"")
 
-				setDataForMapLoc(locData, locElement)
-				locData.domRefs.push(locElement)
-				mapDiv.appendChild(locElement)
+					setDataForMapLoc(locData, locElement)
+					locData.domRefs.push(locElement)
+					mapDiv.appendChild(locElement)
+				}
 			}
 		}
-		if (map.parts) for (mapPart in map.parts) {
-			let partData = map.parts[mapPart]
-			if (!partData.top) continue
-			let mapImgElement = document.createElement("img")
-			mapImgElement.setAttribute("class", "map_img_"+map.rendername+"__"+partData.rendername)
-			setDataForMapPart(partData, mapImgElement)
-			partData.domRefs.push(mapImgElement)
-			mapDiv.appendChild(mapImgElement)
+		if (map.parts) {
+			for (let mapPart in map.parts) {
+				let partData = map.parts[mapPart]
+				if (!partData.top) continue
+				let mapImgElement = document.createElement("img")
+				mapImgElement.setAttribute("class", "map_img_"+map.rendername+"__"+partData.rendername)
+				setDataForMapPart(partData, mapImgElement)
+				partData.domRefs.push(mapImgElement)
+				mapDiv.appendChild(mapImgElement)
+			}
 		}
 		return mapDiv
 	}
 }
+
+export { PL };
 
 /*
 63C: room ID on current level
@@ -1835,7 +1879,6 @@ C3A: current dungeon room
 C35: BG music?
 c39: level?
 c3F: level?
-
 
 TODO: dungeon shuffle, pollspeed, checkable, hardmode, eval loop (instant update of canRemoveBushes/etc. make an array of all items and iterate and skip until you can't no more)
 */
