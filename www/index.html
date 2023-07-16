@@ -1,0 +1,34 @@
+<html>
+<head> 
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<title>KeyHunter</title>
+	<link rel="stylesheet" href="keyhunter.css">
+	<link rel="shortcut icon" type="image/x-icon" href="/keyhunter3.png">
+	<script src="/serverConnection.js"></script>
+	<script src="/base64.js"></script>
+	<script src="/jszip.min.js"></script>
+	<script src="/js-yaml.min.js"></script>
+	<script src="/packLoader.js"></script>
+	<script src="/fengari-web.js"></script>
+	<script src="/luaFrame.js"></script>
+	<script src="/etpackLoader.js"></script>
+	<script type="text/JavaScript">
+		//pl.loadPack("/p/OoA.zip");
+		//etpl.loadPack("/p/ooa.zip");
+	</script>
+</head>
+
+<body id="body" onload="">
+<div style="display:inline-block;position:fixed;top:0;left:0;background:rgba(0,0,0,0.75);z-index:1;padding:8px;border-radius:0 0 8px 0;" id="mainProgressBars">
+	downloaded:<br>
+	<div class="progressBarFrame"><div id="dlpb" class="progressBar"></div></div><span id="dl" style=" margin: 4px; display: inline-block;vertical-align: bottom;"></span><br>
+	<br>
+	extracted:<br>
+	<div class="progressBarFrame"><div id="ex2pb" class="progressBar"></div></div><span id="ex2" style=" margin: 4px; display: inline-block;vertical-align: bottom;"></span><br>
+	<br>
+	images/etc. converted:<br>
+	<div class="progressBarFrame"><div id="convpb" class="progressBar"></div></div><span id="conv" style=" margin: 4px; display: inline-block;vertical-align: bottom;"></span><br>
+</div>
+</body>
+</html>

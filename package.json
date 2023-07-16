@@ -1,0 +1,15 @@
+{
+	"name": "Keyhunter Server",
+	"version": "0.0.0",
+	"description": "A joke. Kinda.",
+	"homepage": "http://beta.aeolid.com/keyhunter",
+	"author": {
+		"name": "Julius Mertens",
+		"email": "julius.mertens@aeolid.com",
+		"url": "https://aeolid.com"
+	},
+	"dependencies": {
+		"mime-types": "^2.1.24",
+		"ws": "^7.3.1"
+	}
+}

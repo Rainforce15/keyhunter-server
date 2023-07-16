@@ -1,0 +1,44 @@
+body {
+	background: url("keyhunter_bwht.svg") #333;
+	background-size: 15%;
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	background-position: center; 
+	color: #999;
+	font-family: sans-serif;
+	/*margin: 0;*/
+}
+.progressBar {
+	background-color: #999;
+	width: 0%;
+	height: 100%;
+}
+.progressBarFrame {
+	display: inline-block;
+	width: 300px;
+	height: 10px;
+	border: 2px solid #999;
+	padding: 2px;
+	margin: 4px;
+}
+
+.layoutBlock {
+	/*margin: 4px;
+	padding: 4px;
+	overflow:hidden;*/
+}
+
+.itemgridBlock {
+	margin:5px 5px 5px 5px;
+}
+
+.layoutVertBlock {
+	/*background-color: rgba(255,0,0,0.3);*/
+	display: block;
+}
+
+.layoutHorzBlock {
+	/*background-color: rgba(0,0,255,0.3);*/
+	display: inline-block;
+	vertical-align: middle;
+}
