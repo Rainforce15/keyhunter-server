@@ -2,7 +2,7 @@ let wsListeners = []
 let socket
 
 function connect() {
-	socket_internal = new WebSocket("ws://"+window.location.host+"/", "memReading")
+	let socket_internal = new WebSocket("ws://"+window.location.host+"/", "memReading")
 	socket = socket_internal
 	socket_internal.onopen = () => console.log("ws open.")
 	socket_internal.onclose = () => {
