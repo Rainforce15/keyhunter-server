@@ -33,7 +33,6 @@ function luaString(str) {
 function jsString(arr) {
 	let len = arr.length
 	let str = ""
-	str.length = arr.length
 	for(let i = 0; i < len; i++) {
 		str += String.fromCharCode(arr[i])
 	}
