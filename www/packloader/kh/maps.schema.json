@@ -1,0 +1,288 @@
+{
+	"$id": "https://aeolid.com/schemas/keyhunter/maps.schema.json",
+	"$schema": "https://json-schema.org/draft/2019-09/schema",
+	"title": "Keyhunter Maps",
+	"description": "Map definitions for the Keyhunter app",
+	"$defs": {
+		"numericOrRef": {
+			"anyOf": [
+				{"type": "number", "minimum": 0},
+				{"type": "string"}
+			]
+		},
+		"part": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"img": {
+					"description": "Image file path to use",
+					"anyOf": [
+						{"type": "string"},
+						{"type": "array", "items": {"type": "string"}}
+					]
+				},
+				"width": {
+					"description": "Width of the image in pixels",
+					"$ref": "#/$defs/numericOrRef"
+				},
+				"height": {
+					"description": "Height of the image in pixels",
+					"$ref": "#/$defs/numericOrRef"
+				},
+				"wh": {
+					"description": "Width and height of the image in pixels",
+					"$ref": "#/$defs/numericOrRef",
+					"anyOf": [{"type": "array", "length": 2, "items": {"$ref": "#/$defs/numericOrRef"}}]
+				},
+				"top": {
+					"description": "If the image is rendered above others",
+					"type": "boolean"
+				},
+				"visible": {
+					"$ref": "#/$defs/itemComparisons"
+				},
+				"x": {
+					"description": "X-Position of the image on the given axis in pixels",
+					"$ref": "#/$defs/numericOrRef"
+				},
+				"y": {
+					"description": "Y-Position of the image on the given axis in pixels",
+					"$ref": "#/$defs/numericOrRef"
+				},
+				"x2": {
+					"description": "X-Position to be added to the original X-Position of the image on the given axis in pixels",
+					"$ref": "#/$defs/numericOrRef"
+				},
+				"y2": {
+					"description": "Y-Position to be added to the original X-Position of the image on the given axis in pixels",
+					"$ref": "#/$defs/numericOrRef"
+				},
+				"xy": {
+					"description": "X- and Y-position of the image in pixels. Compact form of x and y attributes.",
+					"$ref": "#/$defs/numericOrRef",
+					"anyOf": [{"type": "array", "length": 2, "items": {"$ref": "#/$defs/numericOrRef"}}]
+				},
+				"xy2": {
+					"description": "X- and Y-position of the image in pixels, to be added to the original position. Compact form of x2 and y2 attributes.",
+					"$ref": "#/$defs/numericOrRef",
+					"anyOf": [{"type": "array", "length": 2, "items": {"$ref": "#/$defs/numericOrRef"}}]
+				},
+				"xFactor": {
+					"description": "Factor which the X-position is multiplied with",
+					"type": "number"
+				},
+				"yFactor": {
+					"description": "Factor which the Y-position is multiplied with",
+					"type": "number"
+				},
+				"x2Factor": {
+					"description": "Factor which the X2-position is multiplied with",
+					"type": "number"
+				},
+				"y2Factor": {
+					"description": "Factor which the Y2-position is multiplied with",
+					"type": "number"
+				},
+				"xyFactor": {
+					"description": "X- and Y-factor which is multiplied with the X and Y-position. Compact form of xFactor and yFactor attributes.",
+					"$ref": "#/$defs/numericOrRef",
+					"anyOf": [
+						{"type": "number"},
+						{"type": "array", "length": 2, "items": {"type": "number"}}
+					]
+				},
+				"xy2Factor": {
+					"description": "X- and Y-factor which is multiplied with the X2 and Y2-position. Compact form of x2Factor and y2Factor attributes.",
+					"$ref": "#/$defs/numericOrRef",
+					"anyOf": [
+						{"type": "number"},
+						{"type": "array", "length": 2, "items": {"type": "number"}}
+					]
+				},
+				"xOffset": {
+					"description": "X-offset which is added to the X-position",
+					"type": "number"
+				},
+				"yOffset": {
+					"description": "Y-offset which is added to the Y-position",
+					"type": "number"
+				},
+				"x2Offset": {
+					"description": "X-offset which is added to the X2-position",
+					"type": "number"
+				},
+				"y2Offset": {
+					"description": "Y-offset which is added to the Y2-position",
+					"type": "number"
+				},
+				"xyOffset": {
+					"description": "X- and Y-offset which is added to the X and Y-position. Compact form of xOffset and yOffset attributes.",
+					"$ref": "#/$defs/numericOrRef",
+					"anyOf": [
+						{"type": "number"},
+						{"type": "array", "length": 2, "items": {"type": "number"}}
+					]
+				},
+				"xy2Offset": {
+					"description": "X- and Y-offset which is added to the X and Y-position. Compact form of x2Offset and y2Offset attributes.",
+					"$ref": "#/$defs/numericOrRef",
+					"anyOf": [
+						{"type": "number"},
+						{"type": "array", "length": 2, "items": {"type": "number"}}
+					]
+				}
+			}
+		},
+		"location": {
+			"$ref": "#/$defs/part",
+			"properties": {
+				"item": {
+					"description": "Associated item. use \"@\" to apply the current location's name as the checked item name (e.G. if it is a chest).",
+					"type": "string"
+				},
+				"items": {
+					"description": "Associated item, or a list thereof. use \"@\" to apply the current location's name as the checked item name (e.G. if it is a chest).",
+					"anyOf": [
+						{"type": "string"},
+						{"type": "array", "items": {"type": "string"}}
+					]
+				}
+			}
+		},
+		"templatablePart": {
+			"description": "Part",
+			"$ref": "#/$defs/part",
+			"properties": {
+				"imgStage": {
+					"description": "specifies which img entry to use based on the declared item's stage.",
+					"type": "string"
+				}
+			},
+			"patternProperties": {
+				"^t(emplate)?$": {
+					"description": "Template to use, without the leading underscores. Can reference an element of the __template entry of the appropriate type.",
+					"type": "string"
+				}
+			}
+		},
+		"templatableLocation": {
+			"description": "Part",
+			"$ref": "#/$defs/location",
+			"properties": {
+				"entryPoint": {
+					"description": "If the given location is a starting point. Used for pathing.",
+					"anyOf": [
+						{"type": "boolean"},
+						{"$ref": "#/$defs/itemComparisons"}
+					]
+				},
+				"connectsTo": {
+					"description": "Which other locations this location connects to. Used for pathing.",
+					"$ref": "#/$defs/connectsToEntry"
+				},
+				"connectsOneWayTo": {
+					"description": "Which other locations this location leads to, without being able to take the same connection back. Used for pathing.",
+					"$ref": "#/$defs/connectsToEntry"
+				},
+				"connectsOneWayFrom": {
+					"description": "Which other locations this location can be reached from, but not go to itself. Used for pathing.",
+					"$ref": "#/$defs/connectsToEntry"
+				}
+			},
+			"patternProperties": {
+				"^t(emplate)?$": {
+					"description": "Template to use, without the leading underscores. Can reference an element of the __template entry of the appropriate type.",
+					"type": "string"
+				}
+			}
+		},
+		"itemComparisons" : {
+			"additionalProperties": false,
+			"description": "Collection of items to check for. Accepts an item name, or an object with item name keys with concrete numeric values, a list of accepted values or comparisons like \"<5\"",
+			"anyOf": [
+				{"type": "string"},
+				{"type": "array", "items": "string"},
+				{
+					"type": "object",
+					"properties": {
+						"or": {
+							"$ref": "#/$defs/itemComparisons"
+						}
+					},
+					"additionalProperties": {
+						"$ref": "#/$defs/numericOrRef",
+						"anyOf": [
+							{"type": "boolean"},
+							{"type": "array", "items": "integer"}
+						]
+					}
+				}
+			]
+		},
+		"connectsToEntry": {
+			"anyOf": [
+				{"type": "string"},
+				{
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/$defs/connection"
+					}
+				}
+			]
+		},
+		"connection": {
+			"description": "Connection description. Can be an item comparison, or an array of item comparisons of which one must be fulfilled to count as connected.",
+			"additionalProperties": false,
+			"anyOf": [
+				{"type": "null"},
+				{"$ref": "#/$defs/itemComparisons"},
+				{"type": "array", "items": {"$ref": "#/$defs/itemComparisons"}}
+			]
+		}
+	},
+	"type": "object",
+	"additionalProperties": {
+		"description": "Map Entry",
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"parts": {
+				"additionalProperties": {"$ref": "#/$defs/templatablePart"}
+			},
+			"locations": {
+				"additionalProperties": {"$ref": "#/$defs/templatableLocation"}
+			}
+		}
+	},
+	"properties": {
+		"__templates": {
+			"description": "Templates for map generation",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"parts": {
+					"description": "Parts templates",
+					"type": "object",
+					"additionalProperties": false,
+					"patternProperties": {
+						"^__.+$": {
+							"description": "Part template",
+							"$ref": "#/$defs/part"
+						}
+					}
+				},
+				"locations": {
+					"description": "Locations templates",
+					"type": "object",
+					"additionalProperties": false,
+					"patternProperties": {
+						"^__.+$": {
+							"description": "Location template",
+							"$ref": "#/$defs/location"
+						}
+					}
+				}
+			}
+		}
+	}
+}
