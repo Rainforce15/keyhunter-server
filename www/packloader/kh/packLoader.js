@@ -289,7 +289,7 @@ let groupdistance = 32
 
 function loadConfig() {
 	let config = extracted["config.yaml"] || extracted["config.json"]
-	if (config.groupdistance) groupdistance = config.groupdistance
+	if (config["groupdistance"]) groupdistance = config["groupdistance"]
 }
 
 

@@ -375,7 +375,7 @@ function setImgForStage(item, img) {
 	if (extracted["img/"+imgData]) {
 		img.setAttribute("src", extracted["img/"+imgData])
 	} else {
-		img.setAttribute("src", "imgerror.png")
+		img.setAttribute("src", "/img/imgerror.png")
 	}
 }
 

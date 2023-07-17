@@ -341,17 +341,17 @@ function setDataForMapLoc(locData, img) {
 	if (locData.pathingStatus === -1) {
 		let imgData = locData["imgOff"] || locData["img"]
 		if (imgData) img.setAttribute("src", extracted[`img/${imgData}`])
-		else img.setAttribute("src", "imgerror.png")
+		else img.setAttribute("src", "/img/imgerror.png")
 		if (!locData["imgOff"]) style += "filter: grayscale(66%);"
 	}else if (locData.pathingStatus === 1 && !locData.itemsLeft) {
 		let imgData = locData["img"]
 		if (imgData) img.setAttribute("src", extracted[`img/${imgData}`])
-		else img.setAttribute("src", "imgerror.png")
+		else img.setAttribute("src", "/img/imgerror.png")
 		style += "filter: grayscale(100%);"
 	} else if (locData.pathingStatus > 0) {
 		let imgData = locData["img"]
 		if (imgData) img.setAttribute("src", extracted[`img/${imgData}`])
-		else img.setAttribute("src", "imgerror.png")
+		else img.setAttribute("src", "/img/imgerror.png")
 	}
 	if (!_showEverything && (locData.pathingStatus < 1 || !locData.itemsLeft)) style += "visibility: hidden;"
 	img.setAttribute(
