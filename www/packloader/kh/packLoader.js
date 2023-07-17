@@ -207,6 +207,18 @@ document.addEventListener("keypress", e => {
 		e.preventDefault()
 		return false;
 	}
+	if (e.key === "3") {
+		if (maps.showEverything()) {
+			maps.showEverything(false)
+			maps.updateAllMapRender()
+		} else {
+			maps.showEverything(true)
+			maps.updateAllMapRender()
+		}
+		e.stopPropagation()
+		e.preventDefault()
+		return false;
+	}
 	if (e.key === "p") {
 		if (!pathing.debug()) {
 			console.log("dumping pathing data:")
@@ -229,23 +241,14 @@ document.addEventListener("keypress", e => {
 		return false;
 	}
 })
-document.addEventListener("keyup", e => {
-	if (!maps.showEverything() && !e.shiftKey) {
-		maps.showEverything(true)
-		maps.updateAllMapRender()
-	}
-})
-document.addEventListener("keydown", e => {
-	if (maps.showEverything() && e.shiftKey) {
-		maps.showEverything(false)
-		maps.updateAllMapRender()
-	}
-})
 
 
 let updateLoopInterrupt = false
 let showLocations
 let showLines
+showLines = document.createElement("style")
+showLines.innerHTML = ".map_line {visibility:hidden}"
+document.head.appendChild(showLines)
 
 function startPack() {
 	setTimeout(() => {util.removeAllChildren(mainProgressBars); body.removeChild(mainProgressBars)}, 4000)
