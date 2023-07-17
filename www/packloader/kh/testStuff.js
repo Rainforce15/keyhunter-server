@@ -7,10 +7,9 @@ export function testItems(t) {
 		addTestHeader("Item Test", testDiv, document.body)
 		let itemGroups = {}
 		for (let itemName in items.elements) {
-			//if (itemName.substr(0, 2) === "__") continue
+			if (itemName.substring(0, 2) === "__") continue
 			let item = items.elements[itemName]
 			let groupName = item.template && item.template[item.template.length-1] || (item.basename.substring(0, 2) === "__"?"__hidden":"(no template)")
-			if (["__hidden", "ring", "chest", "chestPast"].includes(groupName)) continue
 			if (!itemGroups[groupName]) itemGroups[groupName] = []
 			itemGroups[groupName].push(item)
 		}
@@ -41,8 +40,7 @@ export function testMaps(t) {
 		let testDiv = document.createElement("div")
 		addTestHeader("Map Test", testDiv, document.body)
 		for (let mapName in maps.elements) {
-			if (mapName === "__templates") continue
-			// if (mapName.substring(0, 2) === "__") continue
+			if (mapName.substring(0, 2) === "__") continue
 			let subDiv = document.createElement("div")
 			subDiv.setAttribute("style", "display:inline-block;margin:8px;")
 			let h2 = document.createElement("h2")
