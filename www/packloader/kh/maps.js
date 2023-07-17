@@ -248,8 +248,7 @@ export function generateImageForMap(map) {
 			let locData = mapLocations[locName]
 			if (locData === undefined) continue
 			if (locData["connectsTo"]) {
-				console.log(locName)
-				console.log(locData)
+				console.log(locName, locData)
 				generateLineData(locData, "connectsTo", mapDiv)
 				generateLineData(locData, "connectsOneWayTo", mapDiv)
 			}
