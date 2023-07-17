@@ -128,19 +128,7 @@ function checkTwoWayConnections(loc, indent) {
 		let connectionData = locConnectsTo[connectionName]
 		if (connectionData.ref) {
 			if (_debug) console.log(`${indent}  ${++conCount}/${Object.keys(locConnectsTo).length} ${connectionData.ref.parentMapName}::${connectionData.ref.basename}`, `[${++pathCount}]`)
-			if (connectionData.length === 0) {
-				pathConnections(connectionData.ref, loc)
-			} else {
-				let factorsFound = false
-				for (let factors of connectionData) {
-					if (items.evaluateAnd(factors, `connectsTo ${connectionName} of ${loc.basename}`)) {
-						pathConnections(connectionData.ref, loc)
-						factorsFound = true
-						break
-					}
-				}
-				if (_debug && !factorsFound) console.log(`${indent}   no valid factors.`, `[${++pathCount}]`)
-			}
+			basicPathing(connectionData, loc)
 		} else {
 			if (!connectionData._broken) {
 				connectionData._broken = true
@@ -199,20 +187,24 @@ function pathAllSub(connections, loc, indent) {
 		let connectionData = connections[connectionName]
 		if (connectionData.ref) {
 			if (_debug) console.log(`${indent}  ${++conCount}/${Object.keys(connections).length} ${connectionData.ref.parentMapName}::${connectionData.ref.basename}`, `[${++pathCount}]`)
-			if (connectionData.length === 0) {
+			basicPathing(connectionData, loc)
+		}
+	}
+}
+
+function basicPathing(connectionData, loc) {
+	if (connectionData.length === 0) {
+		pathConnections(connectionData.ref, loc)
+	} else {
+		let factorsFound = false
+		for (let factors of connectionData) {
+			if (items.evaluateAnd(factors, `connectsTo ${connectionData.basename} of ${loc.basename}`)) {
 				pathConnections(connectionData.ref, loc)
-			} else {
-				let factorsFound = false
-				for (let factors of connectionData) {
-					if (items.evaluateAnd(factors, `connectsTo ${connectionName} of ${loc.basename}`)) {
-						pathConnections(connectionData.ref, loc)
-						factorsFound = true
-						break
-					}
-				}
-				if (_debug && !factorsFound) console.log(`${indent}   no valid factors.`, `[${++pathCount}]`)
+				factorsFound = true
+				break
 			}
 		}
+		if (_debug && !factorsFound) console.log(`${indent}   no valid factors.`, `[${++pathCount}]`)
 	}
 }
 
