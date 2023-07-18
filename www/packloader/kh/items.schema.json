@@ -1,0 +1,174 @@
+{
+	"$id": "https://aeolid.com/schemas/keyhunter/items.schema.json",
+	"$schema": "https://json-schema.org/draft/2019-09/schema",
+	"title": "Keyhunter Items",
+	"description": "Item definitions for the Keyhunter app.",
+	"$defs": {
+		"basicMemoryRef": {
+			"type": "array",
+			"length": 2,
+			"items": {
+				"type": "array",
+				"length": 2,
+				"items": {
+					"oneOf": [
+						{"type":  "string", "pattern": "^(0b[01]+|0o[0-7]+|0x[0-9a-fA-F]+)$"},
+						{"type":  "integer"},
+						{"type":  "null"}
+					]
+				}
+			}
+		},
+		"memoryRef": {
+			"description": "The memory type to read, e.g. WRAM, ROM, etc..",
+			"anyOf": [
+				{"$ref": "#/$defs/basicMemoryRef"},
+				{
+					"additionalProperties": false,
+					"properties": {
+						"or": {
+							"$ref": "#/$defs/basicMemoryRef"
+						}
+					}
+				}
+			]
+		},
+		"basicAnd": {
+			"anyOf": [
+				{"type": "array", "items": {"type": "string"}},
+				{"additionalProperties": {"anyOf": [{"type": "number"}, {"type": "string"}]}},
+				{"additionalProperties": false, "properties": {"or": {"$ref": "#/$defs/basicOr"}}}
+			]
+		},
+		"basicOr": {
+			"type": "array",
+			"items": {
+				"anyOf": [
+					{"type": "string"},
+					{"$ref": "#/$defs/basicAnd"}
+				]
+			}
+		},
+		"basicSumSub": {
+			"anyOf": [
+				{"type": "number"},
+				{"type": "string"}
+			]
+		},
+		"sumSub": {
+			"anyOf": [
+				{"$ref": "#/$defs/basicSumSub"},
+				{"type": "array", "items": {"$ref": "#/$defs/basicSumSub"}}
+			]
+		},
+		"basicMemoryItem": {
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"description": "The (renderable) name of the item. $$ in the main name can be used to insert the current item stage name.",
+					"type": "string"
+				},
+				"img": {
+					"description": "The image to display for the item.",
+					"type": "string"
+				},
+				"mem": {
+					"description": "The memory address(es) and optional bitmask to read for the item.",
+					"additionalProperties": {
+						"$ref": "#/$defs/memoryRef"
+					}
+				},
+				"and": {
+					"description": "A list of item names or an object with item names and their values.",
+					"$ref": "#/$defs/basicAnd"
+				},
+				"or": {
+					"description": "A list of item names or an object with item names and their values.",
+					"$ref": "#/$defs/basicOr"
+				},
+				"nor": {
+					"description": "A list of item names or an object with item names and their values.",
+					"$ref": "#/$defs/basicOr"
+				},
+				"sum": {
+					"description": "A list of item names or values, which are added up.",
+					"$ref": "#/$defs/sumSub"
+				},
+				"sub": {
+					"description": "A list of item names or values, which are subtracted from the sum value.",
+					"$ref": "#/$defs/sumSub"
+				}
+			}
+		}
+	},
+	"additionalProperties": {
+		"$ref": "#/$defs/basicMemoryItem",
+		"properties": {
+			"imgOff": {
+				"description": "The image to display for the item when it is off.",
+				"type": "string"
+			},
+			"countable": {
+				"description": "Whether the item can be counted.",
+				"type": "boolean"
+			},
+			"noOffStage": {
+				"description": "Whether the item should not have an off stage.",
+				"type": "boolean"
+			},
+			"cycle": {
+				"description": "Whether the item should cycle through its stages, looping back to its first stage when stepping beyond the last.",
+				"type": "boolean"
+			},
+			"countMap": {
+				"description": "Array as a bitmap of the values associated with each bit, e.g. [8,4,2,1,0,0,0,0] meaning that only the highest four bits are used for counting the value. Can use floating point values too.",
+				"type": "array",
+				"length": 8,
+				"items": { "type": "number" }
+			},
+			"increment": {
+				"description": "The amount to increment the item count by when incremented in the UI.",
+				"type": "number"
+			},
+			"maxAmount": {
+				"description": "The maximum amount of the item that can be held.",
+				"$ref": "#/$defs/sumSub"
+			},
+			"minAmount": {
+				"description": "The minimum amount of the item that can be held.",
+				"type": "number"
+			},
+			"fillOnUpgrade": {
+				"description": "Whether the item should be filled to its maximum amount when it is upgraded.",
+				"type": "boolean"
+			},
+			"countMem": {
+				"description": "The memory address(es) and optional bitmask to read for the item count.",
+				"additionalProperties": {"$ref": "#/$defs/memoryRef"}
+			},
+			"forceMem": {
+				"description": "The memory address(es) and optional bitmask to read for the item count.",
+				"additionalProperties": {"$ref": "#/$defs/memoryRef"}
+			},
+			"stages": {
+				"description": "the stages of the item (e.g. Lv1, Lv2, etc.)",
+				"type": "array",
+				"items": {
+					"$ref": "#/$defs/basicMemoryItem",
+					"properties": {
+						"capValue": {"type": "number"}
+					}
+				}
+			}
+		},
+		"patternProperties": {
+			"^t(emplate)?$": {
+				"description": "Template to use, without the leading underscores. Can reference an element of the __template entry of the appropriate type.",
+				"anyOf": [
+					{"type": "string"},
+					{"type": "array", "items": {"type": "string"}}
+				]
+			}
+		}
+	}
+}
