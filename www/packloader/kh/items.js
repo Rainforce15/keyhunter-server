@@ -55,7 +55,7 @@ function parseItemMemStringsAndIndex(groupdistance) {
 			if (!elements[itemMaxAmount].maxCaps) elements[itemMaxAmount].maxCaps = []
 			elements[itemMaxAmount].maxCaps.push(item.basename)
 		}
-		item.curStage = item["noOffStage"] || item["noStageAlert"] ? 1 : 0
+		item.curStage = item["noOffStage"] ? 1 : 0
 
 		//parsing, indexing
 		if (item.stages) {
@@ -104,7 +104,7 @@ function evaluateStage(stage, debugField) {
 	else if (stage["or"]) return evaluateOr(stage["or"], debugField)
 	else if (stage["nor"]) return !evaluateOr(stage["nor"], debugField)
 	else if (stage["and"]) return evaluateAnd(stage["and"], debugField)
-	else if (stage["sum"] || stage.sub) return evaluateSumSub(stage["sum"], stage["sub"], stage["minAmount"], stage["maxAmount"])
+	else if (stage["sum"] || stage["sub"]) return evaluateSumSub(stage["sum"], stage["sub"], stage["minAmount"], stage["maxAmount"])
 }
 function updateItemData(item) {
 	let itemStages = item.stages
@@ -117,10 +117,6 @@ function updateItemData(item) {
 			if (evaluateStage(stageData, item.basename) && item.curStage < stageNumber) {
 				item.curStage = stageNumber
 			}
-		}
-		if (item.curStage === 0 && item["noStageAlert"] && item.basename.substring(0, 2) !== "__") {
-			//console.log(JSON.stringify(memory.memIndex, null, "  "))
-			//alert("Unknown value for "+item.basename+". Dumping memory into console and moving on.")
 		}
 	} else if (itemCountMem) {
 		let memType = Object.keys(itemCountMem)[0]
@@ -178,8 +174,10 @@ export function evaluateAnd(list, debugField) {
 	return 0
 }
 function evaluateSumSub(sumList, subList, min, max) {
-	if (sumList === undefined || !Array.isArray(sumList)) sumList = []
-	if (subList === undefined || !Array.isArray(subList)) subList = []
+	if (sumList === undefined) sumList = []
+	if (subList === undefined) subList = []
+	if (!Array.isArray(sumList)) sumList = [sumList]
+	if (!Array.isArray(subList)) subList = [subList]
 
 	let sum = 0
 
@@ -250,7 +248,7 @@ export function evaluateEntry(entry, val, debugField) {
 function findStageForString(item, stageName) {
 	if (item.stages) {
 		for (let i = 0; i < item.stages.length; i++) {
-			if (item.stages[i].name === stageName) return i+1
+			if (item.stages[i].name === stageName) return i + 1
 		}
 		console.log(`stagename not found: ${stageName} (item: ${item.basename})`)
 		return getItemMinStage(item)
