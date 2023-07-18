@@ -331,7 +331,6 @@ function createLine(x, y, x2, y2, classString) {
 	let renderY = y - 1 + yDiff/2
 	lineDiv.setAttribute("style", `${baseStyle}width:${len}px;left:${renderX}px;top:${renderY}px;transform:rotate(${angle}deg);`)
 	lineDiv.setAttribute("class", `map_line ${classString}`)
-	//console.log("creating line: ", [x, y], [x2, y2], [renderX, renderY], len, angle, classString, lineDiv)
 	return lineDiv
 }
 

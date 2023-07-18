@@ -401,7 +401,6 @@ function getItemMaxStage(item) {
 	else return 1
 }
 function adjustStage(item, increment) {
-	//console.log(item.basename, ":", item.curStage, "->", item.curStage+increment)
 	if (increment === 0) return
 	setStage(item, item.curStage + increment)
 }
@@ -410,7 +409,6 @@ function setStage(item, desiredStage) {
 	let maxStage = getItemMaxStage(item)
 
 	if (desiredStage >= minStage && desiredStage <= maxStage) {
-		//console.log("valid!")
 		updateGameItemState(item, desiredStage)
 		if (item.maxCaps) {
 			for (let itemName of item.maxCaps) {
@@ -422,7 +420,6 @@ function setStage(item, desiredStage) {
 			}
 		}
 	} else {
-		//console.log("trying to adjust")
 		if (item["cycle"]) {
 			if (desiredStage < minStage) setStage(item, maxStage)
 			else if (desiredStage > maxStage) setStage(item, minStage)
@@ -445,15 +442,11 @@ function updateGameItemState(item, newStage) {
 			bitMask.fill(0)
 			let byteMask = new Array(Math.ceil(countMap.length/8))
 			byteMask.fill(0)
-			//console.log(countMapSorted)
-			//console.log(remainder)
 			while(remainder > 0) {
 				for (let i = 0; i < countMapSorted.length; i++) {
-					//console.log("testing "+countMapSorted[i]+" against "+remainder)
 					if (countMapSorted[i] <= remainder) {
 						bitMask[countMap.indexOf(countMapSorted[i])] = 1
 						remainder -= countMapSorted[i]
-						//console.log("success!")
 						break
 					}
 					if (i === countMapSorted.length-1) {
@@ -461,13 +454,11 @@ function updateGameItemState(item, newStage) {
 					}
 				}
 			}
-			//console.log(bitMask)
 			for (let i = 0; i < bitMask.length; i++) {
 				if (bitMask[i] === 1) {
 					byteMask[Math.floor(i/8)] = byteMask[Math.floor(i/8)] | (1 << (7-(i%8)))
 				}
 			}
-			//console.log(byteMask)
 			for (let i = 0; i < itemCountMem[memType].length; i++) {
 				let loc = itemCountMem[memType][i]
 				let baseVal = memory.memIndex[memType][loc[0]] & item.countIgnoreMap[i]
@@ -475,7 +466,6 @@ function updateGameItemState(item, newStage) {
 			}
 		} else {
 			let bytesAvailable = itemCountMem[memType].length
-			//if (newStage > Math.pow(0x100, bytesAvailable) -1) newStage =
 			for (let i = bytesAvailable-1; i >= 0; i--) {
 				memory.addNewValueToNewMem(memType, itemCountMem[memType][i][0], (newStage >> (bytesAvailable-1-i)*8) & 0xFF)
 			}
