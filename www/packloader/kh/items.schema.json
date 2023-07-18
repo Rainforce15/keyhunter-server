@@ -106,7 +106,10 @@
 		"properties": {
 			"imgOff": {
 				"description": "The image to display for the item when it is off.",
-				"type": "string"
+				"anyOf": [
+					{"type": "string"},
+					{"type": "null"}
+				]
 			},
 			"countable": {
 				"description": "Whether the item can be counted.",
