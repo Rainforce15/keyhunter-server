@@ -31,7 +31,8 @@ function buildCountIgnoreMap(item) {
 	let itemCountMap = item["countMap"]
 	if (itemCountMap) {
 		item.countMapSorted = JSON.parse(JSON.stringify(itemCountMap)).sort((a, b) => b - a)
-		let countIgnoreMap = item.countIgnoreMap = []
+		let countIgnoreMap = []
+		item.countIgnoreMap = countIgnoreMap
 		for (let i = 0; i < itemCountMap.length; i++) {
 			if (i % 8 === 0) {
 				countIgnoreMap.push(0)
@@ -365,7 +366,7 @@ function resolveCountMapToNewMem(item, newStage) {
 	for (let i = 0; i < bitMask.length; i++) {
 		if (bitMask[i] === 1) {
 			let iBase = Math.floor(i / 8)
-			byteMask[iBase] = byteMask[iBase] | (1 << (7 - (i % 8)))
+			byteMask[iBase] |= (1 << (7 - (i % 8)))
 		}
 	}
 	for (let i = 0; i < itemCountMem[memType].length; i++) {
