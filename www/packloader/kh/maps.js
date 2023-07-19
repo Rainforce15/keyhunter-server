@@ -39,7 +39,7 @@ export function load() {
 				if (locData.items) {
 					if (typeof locData.items === "string") locData.items = [locData.items]
 					for (let i = 0; i < locData.items.length; i++) {
-						if (locData.items[i] === "@" && locName.substring(0, 2) !== "__") locData.items[i] = locName
+						if (locData.items[i] === "@" && !locName.startsWith("__")) locData.items[i] = locName
 					}
 					locData.itemsLeft = locData.items.length
 
@@ -71,7 +71,8 @@ export function load() {
 			}
 		}
 	}
-	if (lostLocs.filter(e=>e.substring(0, 2) !== "__").length > 0) console.warn(`unconnected location(s): ${lostLocs.filter(e => e.substring(0, 2) !== "__").join(", ")}`)
+	let lostNonTemplates = lostLocs.filter(e => !e.startsWith("__"))
+	if (lostNonTemplates.length > 0) console.warn(`unconnected location(s): ${lostNonTemplates.join(", ")}`)
 
 	console.log(elements)
 	console.log("done")

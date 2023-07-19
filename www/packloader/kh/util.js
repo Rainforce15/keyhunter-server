@@ -67,9 +67,9 @@ export function parseIntString(n) {
 	if (typeof n === "string") {
 		let numString = n
 		if (n[0] === "-") numString = n.substring(1)
-		if (numString.substring(0, 2) === "0b") ret = parseInt(numString.substring(2), 2)
-		else if (numString.substring(0, 2) === "0o") ret = parseInt(numString.substring(2), 8)
-		else if (numString.substring(0, 2) === "0x") ret = parseInt(numString.substring(2), 16)
+		if (numString.startsWith("0b")) ret = parseInt(numString.substring(2), 2)
+		else if (numString.startsWith("0o")) ret = parseInt(numString.substring(2), 8)
+		else if (numString.startsWith("0x")) ret = parseInt(numString.substring(2), 16)
 		else ret = parseInt(numString, 16)
 		ret *=  ((n[0] === "-")?-1:1)
 	} else if (typeof n === "number") {

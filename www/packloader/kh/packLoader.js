@@ -125,16 +125,16 @@ function preConversion() {
 	setTimer("conv")
 	for (let key in extracted) {
 		let fileData = extracted[key]
-		if (key.substring(key.length - 4) === ".png" && fileData[1] === 0x50 && fileData[2] === 0x4E && fileData[3] === 0x47) {
+		if (key.endsWith(".png") && fileData[1] === 0x50 && fileData[2] === 0x4E && fileData[3] === 0x47) {
 			extracted[key] = `data:image/png;base64, ${bytesToBase64(fileData)}`
 		}
-		else if (key.substring(key.length - 4) === ".gif" && fileData[0] === 0x47 && fileData[1] === 0x49 && fileData[2] === 0x46 && fileData[3] === 0x38 && fileData[5] === 0x61) {
+		else if (key.endsWith(".gif") && fileData[0] === 0x47 && fileData[1] === 0x49 && fileData[2] === 0x46 && fileData[3] === 0x38 && fileData[5] === 0x61) {
 			extracted[key] = `data:image/gif;base64, ${bytesToBase64(fileData)}`
 		}
-		else if ((key.substring(key.length - 4) === ".jpg" || key.substring(key.length - 4) === ".jpeg") && fileData[0] === 0xFF && fileData[1] === 0xD8 && fileData[2] === 0xFF) {
+		else if ((key.endsWith(".jpg") || key.endsWith(".jpeg")) && fileData[0] === 0xFF && fileData[1] === 0xD8 && fileData[2] === 0xFF) {
 			extracted[key] = `data:image/jpeg;base64, ${bytesToBase64(fileData)}`
 		}
-		else if (key.substring(key.length - 5) === ".json") {
+		else if (key.endsWith(".json")) {
 			try {
 				extracted[key] = util.utf8ArrayToYaml(fileData)
 			} catch(e) {
@@ -146,7 +146,7 @@ function preConversion() {
 				JSONerror = e
 			}
 		}
-		else if (key.substring(key.length - 5) === ".yaml") {
+		else if (key.endsWith(".yaml")) {
 			try {
 				extracted[key] = util.utf8ArrayToYaml(fileData)
 			} catch(e) {
