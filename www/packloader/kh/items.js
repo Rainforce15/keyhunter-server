@@ -5,70 +5,90 @@ import * as util from "./util.js";
 export let elements = {}
 let extracted
 
-function parseItemMemStringsAndIndex(groupdistance) {
-	for (let itemName in elements) { //fix shortcuts
+function fixMemArray(mem) {
+	if (mem) for (let memType in mem) {
+		if (Array.isArray(mem[memType]) && !Array.isArray(mem[memType][0])) {
+			mem[memType] = [mem[memType]]
+		}
+	}
+}
+
+function fixMemArrayShortcuts() {
+	for (let itemName in elements) {
 		let item = elements[itemName]
 		for (let memKey of ["mem", "countMem", "forceMem"]) {
-			if (item[memKey]) {
-				for (let memType in item[memKey]) {
-					if (Array.isArray(item[memKey][memType]) && !Array.isArray(item[memKey][memType][0])) item[memKey][memType] = [item[memKey][memType]]
-				}
-			}
+			fixMemArray(item[memKey])
 		}
 		if (item.stages) {
 			for (let stage of item.stages) {
-				let stageMem = stage["mem"]
-				if (stageMem) {
-					for (let memType in stageMem) {
-						if (Array.isArray(stageMem[memType]) && !Array.isArray(stageMem[memType][0])) stageMem[memType] = [stageMem[memType]]
-					}
-				}
+				fixMemArray(stage["mem"])
 			}
 		}
 	}
+}
+
+function buildCountIgnoreMap(item) {
+	let itemCountMap = item["countMap"]
+	if (itemCountMap) {
+		item.countMapSorted = JSON.parse(JSON.stringify(itemCountMap)).sort((a, b) => b - a)
+		let countIgnoreMap = item.countIgnoreMap = []
+		for (let i = 0; i < itemCountMap.length; i++) {
+			if (i % 8 === 0) {
+				countIgnoreMap.push(0)
+			}
+			if (itemCountMap[i] === 0) {
+				countIgnoreMap[countIgnoreMap.length - 1] |= [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01][i % 8]
+			}
+		}
+	}
+}
+
+function buildMaxCaps(item) {
+	let itemMaxAmount = item["maxAmount"]
+	if (itemMaxAmount && typeof itemMaxAmount === "string") {
+		if (!elements[itemMaxAmount].maxCaps) {
+			elements[itemMaxAmount].maxCaps = []
+		}
+		elements[itemMaxAmount].maxCaps.push(item.basename)
+	}
+}
+
+function parseAllMemAndIndex(item, groupDistance) {
+	if (item.stages) {
+		for (let stage of item.stages) {
+			memory.parseAllFlagsAndIndex(stage["mem"], groupDistance)
+		}
+	}
+	for (let memKey of ["mem", "countMem", "forceMem"]) {
+		memory.parseAllFlagsAndIndex(item[memKey], groupDistance)
+	}
+}
+
+function parseItemMemStringsAndIndex(groupDistance) {
+	fixMemArrayShortcuts()
 	base.applyTemplates(elements, elements, "item")
 	for (let itemName in elements) {
 		let item = elements[itemName]
 		//if (itemName.substr(0, 2) === "__") continue
-		let itemCountMap = item["countMap"]
-		if (itemCountMap) {
-			item.countMapSorted = JSON.parse(JSON.stringify(itemCountMap)).sort((a, b) => b - a)
-			let countIgnoreMap = item.countIgnoreMap = []
-			for (let i = 0; i < itemCountMap.length; i++) {
-				if (i%8 === 0) {
-					countIgnoreMap.push(0)
-				}
-				if (itemCountMap[i] === 0) {
-					if (i % 8 === 0) countIgnoreMap[countIgnoreMap.length - 1] |= 0x80
-					if (i % 8 === 1) countIgnoreMap[countIgnoreMap.length - 1] |= 0x40
-					if (i % 8 === 2) countIgnoreMap[countIgnoreMap.length - 1] |= 0x20
-					if (i % 8 === 3) countIgnoreMap[countIgnoreMap.length - 1] |= 0x10
-					if (i % 8 === 4) countIgnoreMap[countIgnoreMap.length - 1] |= 0x08
-					if (i % 8 === 5) countIgnoreMap[countIgnoreMap.length - 1] |= 0x04
-					if (i % 8 === 6) countIgnoreMap[countIgnoreMap.length - 1] |= 0x02
-					if (i % 8 === 7) countIgnoreMap[countIgnoreMap.length - 1] |= 0x01
-				}
-			}
-		}
-		let itemMaxAmount = item["maxAmount"]
-		if (itemMaxAmount && typeof itemMaxAmount === "string") {
-			if (!elements[itemMaxAmount].maxCaps) elements[itemMaxAmount].maxCaps = []
-			elements[itemMaxAmount].maxCaps.push(item.basename)
-		}
+		buildCountIgnoreMap(item)
+		buildMaxCaps(item)
+
 		item.curStage = item["noOffStage"] ? 1 : 0
 
-		//parsing, indexing
-		if (item.stages) {
-			for (let stage of item.stages) memory.parseAllFlagsAndIndex(stage["mem"], groupdistance)
-		}
-		for (let memKey of ["mem", "countMem", "forceMem"]) {
-			memory.parseAllFlagsAndIndex(item[memKey], groupdistance)
-		}
+		parseAllMemAndIndex(item, groupDistance)
 	}
 	//final group test pass
-	memory.spliceGroups(groupdistance)
+	memory.spliceGroups(groupDistance)
 }
-export function load(extractedFiles, groupdistance) {
+
+function initDomRefs() {
+	for (let itemName in elements) {
+		elements[itemName].imgDomRefs = []
+		elements[itemName].titleDomRefs = []
+	}
+}
+
+export function load(extractedFiles, groupDistance) {
 	extracted = extractedFiles
 	elements = extracted["items.yaml"] || extracted["items.json"]
 	if (!elements) {
@@ -82,12 +102,8 @@ export function load(extractedFiles, groupdistance) {
 	}
 	base.applyBaseRendername(elements)
 	base.applyTemplates(elements)
-	parseItemMemStringsAndIndex(groupdistance)
-	for (let itemName in elements) {
-		elements[itemName].imgDomRefs = []
-		elements[itemName].titleDomRefs = []
-	}
-
+	parseItemMemStringsAndIndex(groupDistance)
+	initDomRefs()
 	memory.sendAndReceiveState()
 	setInterval(memory.sendAndReceiveState, 1000)
 	wsListeners.push(memory.addressHandler)
@@ -106,73 +122,90 @@ function evaluateStage(stage, debugField) {
 	else if (stage["and"]) return evaluateAnd(stage["and"], debugField)
 	else if (stage["sum"] || stage["sub"]) return evaluateSumSub(stage["sum"], stage["sub"], stage["minAmount"], stage["maxAmount"])
 }
-function updateItemData(item) {
-	let itemStages = item.stages
+
+function raiseCurStageToHighestValid(item) {
+	item.curStage = item["noOffStage"]?1:0
+	let itemStages = item["stages"]
+	for (let i = 0; i < itemStages.length; i++) {
+		let stageData = itemStages[i]
+		let stageNumber = i + 1
+		if (evaluateStage(stageData, item.basename) && item.curStage < stageNumber) {
+			item.curStage = stageNumber
+		}
+	}
+}
+
+function raiseCurStageToCounted(item) {
 	let itemCountMem = item["countMem"]
-	if (itemStages) {
-		item.curStage = item["noOffStage"]?1:0
-		for (let i = 0; i < itemStages.length; i++) {
-			let stageData = itemStages[i]
-			let stageNumber = i+1
-			if (evaluateStage(stageData, item.basename) && item.curStage < stageNumber) {
-				item.curStage = stageNumber
-			}
-		}
-	} else if (itemCountMem) {
-		let memType = Object.keys(itemCountMem)[0]
-		let locMemIndex = memory.memIndex[memType]
-		item.curStage = 0
-		for(let i = 0; i < itemCountMem[memType].length; i++) {
-			let val = locMemIndex[itemCountMem[memType][i][0]]
-			if (item["countMap"]) {
-				let offset = 8 * i
-				for (let j = 0; j < 8; j++) {
-					if (((val << j) & 0x80) === 0x80) {
-						item.curStage += item["countMap"][offset + j]
-					}
+	let memType = Object.keys(itemCountMem)[0]
+	let locMemIndex = memory.memIndex[memType]
+	let memForType = itemCountMem[memType]
+	item.curStage = 0
+	for(let i = 0; i < memForType.length; i++) {
+		let val = locMemIndex[memForType[i][0]]
+		if (item["countMap"]) {
+			let offset = 8 * i
+			for (let j = 0; j < 8; j++) {
+				if (((val << j) & 0x80) === 0x80) {
+					item.curStage += item["countMap"][offset + j]
 				}
-			} else {
-				let newStage = item.curStage + locMemIndex[itemCountMem[memType][i][0]] * Math.pow(0x100, (itemCountMem[memType].length-1-i))
-				if (item.forceMax && item.forceMax < newStage) newStage = item.forceMax
-				item.curStage = newStage
 			}
+		} else {
+			let newStage = item.curStage + val * Math.pow(0x100, (memForType.length - 1 - i))
+			if (item.forceMax && item.forceMax < newStage) {
+				newStage = item.forceMax
+			}
+			item.curStage = newStage
 		}
+	}
+}
+
+function updateItemData(item) {
+	if (item["stages"]) {
+		raiseCurStageToHighestValid(item)
+	} else if (item["countMem"]) {
+		raiseCurStageToCounted(item)
 	} else {
 		item.curStage = evaluateStage(item, item.basename)
 	}
 }
-function evaluateOr(list, debugField) {
-	if (Array.isArray(list)) {
-		for (let i = 0; i < list.length; i++) {
-			if (evaluateEntry(list[i], undefined, debugField)) return 1
+function evaluateOr(orList, debugField) {
+	if (Array.isArray(orList)) {
+		for (let orElement of orList) {
+			if (evaluateEntry(orElement, undefined, debugField)) return 1
 		}
-	} else if(typeof list === "object") {
-		let keyList = Object.keys(list)
-		for (let i = 0; i < keyList.length; i++) {
-			if (evaluateEntry(keyList[i], list[keyList[i]], debugField)) return 1
+	} else if(typeof orList === "object") {
+		for (let orElement in orList) {
+			if (evaluateEntry(orElement, orList[orElement], debugField)) return 1
 		}
 	}
 	return 0
 }
-export function evaluateAnd(list, debugField) {
-	if (Array.isArray(list)) {
-		for (let i = 0; i < list.length; i++) {
-			if (!evaluateEntry(list[i], undefined, debugField)) return 0
+export function evaluateAnd(andList, debugField) {
+	if (Array.isArray(andList)) {
+		for (let andElement of andList) {
+			if (!evaluateEntry(andElement, undefined, debugField)) return 0
 		}
-		return 1
-	} else if(typeof list === "object") {
-		let keyList = Object.keys(list)
-		for (let i = 0; i < keyList.length; i++) {
-			if (keyList[i] === "or") {
-				if (!evaluateOr(list[keyList[i]], debugField)) return 0
+	} else if(typeof andList === "object") {
+		for (let andElement in andList) {
+			if (andElement === "or") {
+				if (!evaluateOr(andList[andElement], debugField)) return 0
 			} else {
-				if (!evaluateEntry(keyList[i], list[keyList[i]], debugField)) return 0
+				if (!evaluateEntry(andElement, andList[andElement], debugField)) return 0
 			}
 		}
-		return 1
 	}
-	return 0
+	return 1
 }
+
+function getSumSubStage(sumtrahend) {
+	if (typeof sumtrahend === "number") {
+		return sumtrahend
+	} else {
+		return elements[sumtrahend].curStage
+	}
+}
+
 function evaluateSumSub(sumList, subList, min, max) {
 	if (sumList === undefined) sumList = []
 	if (subList === undefined) subList = []
@@ -181,29 +214,44 @@ function evaluateSumSub(sumList, subList, min, max) {
 
 	let sum = 0
 
-	for (let i = 0; i < sumList.length; i++) {
-		if (typeof sumList[i] === "number") {
-			sum += sumList[i]
-		} else if (sumList[i][0] === "!") {
-			if (elements[sumList[i].substring(1)] === undefined) console.log("unknown item:", sumList[i].substring(1))
-			sum += elements[sumList[i].substring(1)].curStage === 0 ? 1 : 0
-		} else {
-			sum += elements[sumList[i]].curStage
-		}
+	for (let summand of sumList) {
+		sum += getSumSubStage(summand)
 	}
-	for (let i = 0; i < subList.length; i++) {
-		if (typeof subList[i] === "number") {
-			sum -= subList[i]
-		} else {
-			sum -= elements[subList[i]].curStage
-		}
+	for (let subtrahend of subList) {
+		sum -= getSumSubStage(subtrahend)
 	}
 
-	if (max !== undefined && sum > max) return max
-	if (min !== undefined && sum < min) return min
+	if (max !== undefined) {
+		max = getSumSubStage(max)
+		if (sum > max) return max
+	}
+	if (min !== undefined) {
+		min = getSumSubStage(min)
+		if (sum < min) return min
+	}
+
 	return sum
 }
 let knownErrors = []
+
+function findStageForString(item, stageName) {
+	if (item.stages) {
+		for (let i = 0; i < item.stages.length; i++) {
+			if (item.stages[i].name === stageName) return i + 1
+		}
+		console.log(`stageName not found: ${stageName} (item: ${item.basename})`)
+	} else {
+		console.log(`keyed stage for stageless item: ${item.basename}`)
+	}
+	return item["noOffStage"] ? 1 : 0
+}
+
+function getCompStage(item, val) {
+	let valDesc = val.substring(1)
+	let num = parseInt(valDesc)
+	return isNaN(num) ? findStageForString(item, valDesc) : num
+}
+
 export function evaluateEntry(entry, val, debugField) {
 	if (Array.isArray(entry) || typeof entry === "object") return evaluateAnd(entry, debugField)
 	let item = elements[entry]
@@ -223,17 +271,11 @@ export function evaluateEntry(entry, val, debugField) {
 		} else if (typeof val === "string") {
 			if (val === "") return item.curStage > 0
 			if (val[0] === ">") {
-				let valDesc = val.substring(1)
-				let num = parseInt(valDesc)
-				return item.curStage > (isNaN(num)?findStageForString(item, valDesc):num)
+				return item.curStage > getCompStage(item, val)
 			} else if (val[0] === "<") {
-				let valDesc = val.substring(1)
-				let num = parseInt(valDesc)
-				return item.curStage < (isNaN(num)?findStageForString(item, valDesc):num)
+				return item.curStage < getCompStage(item, val)
 			} else if (val[0] === "!") {
-				let valDesc = val.substring(1)
-				let num = parseInt(valDesc)
-				return item.curStage !== (isNaN(num)?findStageForString(item, valDesc):num)
+				return item.curStage !== getCompStage(item, val)
 			} else {
 				return item.curStage === findStageForString(item, val)
 			}
@@ -243,19 +285,6 @@ export function evaluateEntry(entry, val, debugField) {
 		}
 	} else {
 		return item.curStage > 0
-	}
-}
-function findStageForString(item, stageName) {
-	if (item.stages) {
-		for (let i = 0; i < item.stages.length; i++) {
-			if (item.stages[i].name === stageName) return i + 1
-		}
-		console.log(`stagename not found: ${stageName} (item: ${item.basename})`)
-		return getItemMinStage(item)
-
-	} else {
-		console.log(`keyed stage for stageless item: ${item.basename}`)
-		return getItemMinStage(item)
 	}
 }
 
@@ -272,13 +301,13 @@ export function updateAllItemRender() {
 function updateItemRender(item) {
 	let itemImgs = item.imgDomRefs
 	util.log(itemImgs)
-	for(let i = 0; i < itemImgs.length; i++) {
-		setImgForStage(item, itemImgs[i])
+	for(let itemImg of itemImgs) {
+		setImgForStage(item, itemImg)
 	}
 	let itemTitles = item.titleDomRefs
 	util.log(itemTitles)
-	for(let i = 0; i < itemTitles.length; i++) {
-		setTitleForStage(item, itemTitles[i])
+	for(let itemTitle of itemTitles) {
+		setTitleForStage(item, itemTitle)
 	}
 }
 
@@ -298,25 +327,23 @@ export function generateTitleForItem(item) {
 	if (item.titleDomRefs.indexOf(title) === -1) item.titleDomRefs.push(title)
 	return title
 }
+
+function CreateClickIncrementor(item, increment) {
+	return function(e) {
+		if (e.altKey && e.ctrlKey) adjustStage(item, increment*1000)
+		else if (e.altKey) adjustStage(item, increment*100)
+		else if (e.ctrlKey) adjustStage(item, increment*10)
+		else adjustStage(item, increment)
+		e.preventDefault()
+		return false
+	}
+}
+
 function setItemClickHandler(node, item) {
 	node.item = item
 	let increment = item["increment"] || 1
-	node.onclick = function(e) {
-		if (e.altKey && e.ctrlKey) adjustStage(item, +increment*1000)
-		else if (e.altKey) adjustStage(item, +increment*100)
-		else if (e.ctrlKey) adjustStage(item, +increment*10)
-		else adjustStage(item, +increment)
-		e.preventDefault()
-		return false
-	}
-	node.oncontextmenu = function(e) {
-		if (e.altKey && e.ctrlKey) adjustStage(item, -increment*1000)
-		else if (e.altKey) adjustStage(item, -increment*100)
-		else if (e.ctrlKey) adjustStage(item, -increment*10)
-		else adjustStage(item, -increment)
-		e.preventDefault()
-		return false
-	}
+	node.onclick = CreateClickIncrementor(item, increment)
+	node.oncontextmenu = CreateClickIncrementor(item, -increment)
 }
 
 function renderItemName(item, name) {
@@ -380,19 +407,20 @@ function setImgForStage(item, img) {
 function getCapValue(item) {
 	if (item.curStage === 0) return 0
 	return item["capValue"] ||
-		(item.stages && item.stages[item.curStage - 1]["capValue"]) ||
+		item.stages && item.stages[item.curStage - 1]["capValue"] ||
 		item.curStage
 }
-function getItemMinStage(item) {
-	return item["noOffStage"]?1:0
-}
+
 function getItemMaxStage(item) {
 	if (item.stages) return item.stages.length
 	if (item["countable"] || item["countMem"]) {
-		if (item["maxAmount"]) {
-			if (typeof item["maxAmount"] === "number") return item["maxAmount"]
-			else if (typeof item["maxAmount"] === "string") {
-				return getCapValue(elements[item["maxAmount"]])
+		let itemMaxAmount = item["maxAmount"]
+		if (itemMaxAmount) {
+			if (typeof itemMaxAmount === "number") {
+				return itemMaxAmount
+			}
+			else if (typeof itemMaxAmount === "string") {
+				return getCapValue(elements[itemMaxAmount])
 			}
 		} else {
 			return Infinity
@@ -404,8 +432,9 @@ function adjustStage(item, increment) {
 	if (increment === 0) return
 	setStage(item, item.curStage + increment)
 }
+
 function setStage(item, desiredStage) {
-	let minStage = getItemMinStage(item)
+	let minStage = item["noOffStage"] ? 1 : 0
 	let maxStage = getItemMaxStage(item)
 
 	if (desiredStage >= minStage && desiredStage <= maxStage) {
@@ -429,45 +458,51 @@ function setStage(item, desiredStage) {
 		}
 	}
 }
+
+function resolveCountMapToNewMem(item, newStage) {
+	let remainder = newStage
+	let itemCountMem = item["countMem"]
+	let countMap = item["countMap"]
+	let memType = Object.keys(itemCountMem)[0]
+	let countMapSorted = item.countMapSorted
+	let bitMask = Array(countMap.length).fill(0)
+	let byteMask = Array(Math.ceil(countMap.length / 8)).fill(0)
+	while(remainder > 0) {
+		for (let i = 0; i < countMapSorted.length; i++) {
+			if (countMapSorted[i] <= remainder) {
+				bitMask[countMap.indexOf(countMapSorted[i])] = 1
+				remainder -= countMapSorted[i]
+				break
+			}
+			if (i === countMapSorted.length-1) {
+				remainder = 0
+			}
+		}
+	}
+	for (let i = 0; i < bitMask.length; i++) {
+		if (bitMask[i] === 1) {
+			let iBase = Math.floor(i / 8)
+			byteMask[iBase] = byteMask[iBase] | (1 << (7 - (i % 8)))
+		}
+	}
+	for (let i = 0; i < itemCountMem[memType].length; i++) {
+		let loc = itemCountMem[memType][i]
+		let baseVal = memory.memIndex[memType][loc[0]] & item.countIgnoreMap[i]
+		memory.addNewValueToNewMem(memType, loc[0], baseVal | byteMask[i])
+	}
+}
+
 function updateGameItemState(item, newStage) {
 	item.delayUpdate = true
 	let itemCountMem = item["countMem"]
 	if (itemCountMem) {
 		let memType = Object.keys(itemCountMem)[0]
 		if (item["countMap"]) {
-			let remainder = newStage
-			let countMap = item["countMap"]
-			let countMapSorted = item.countMapSorted
-			let bitMask = new Array(countMap.length)
-			bitMask.fill(0)
-			let byteMask = new Array(Math.ceil(countMap.length/8))
-			byteMask.fill(0)
-			while(remainder > 0) {
-				for (let i = 0; i < countMapSorted.length; i++) {
-					if (countMapSorted[i] <= remainder) {
-						bitMask[countMap.indexOf(countMapSorted[i])] = 1
-						remainder -= countMapSorted[i]
-						break
-					}
-					if (i === countMapSorted.length-1) {
-						remainder = 0
-					}
-				}
-			}
-			for (let i = 0; i < bitMask.length; i++) {
-				if (bitMask[i] === 1) {
-					byteMask[Math.floor(i/8)] = byteMask[Math.floor(i/8)] | (1 << (7-(i%8)))
-				}
-			}
-			for (let i = 0; i < itemCountMem[memType].length; i++) {
-				let loc = itemCountMem[memType][i]
-				let baseVal = memory.memIndex[memType][loc[0]] & item.countIgnoreMap[i]
-				memory.addNewValueToNewMem(memType, loc[0], baseVal | byteMask[i])
-			}
+			resolveCountMapToNewMem(item, newStage)
 		} else {
 			let bytesAvailable = itemCountMem[memType].length
 			for (let i = bytesAvailable-1; i >= 0; i--) {
-				memory.addNewValueToNewMem(memType, itemCountMem[memType][i][0], (newStage >> (bytesAvailable-1-i)*8) & 0xFF)
+				memory.addNewValueToNewMem(memType, itemCountMem[memType][i][0], (newStage >> (bytesAvailable - 1 - i) * 8) & 0xFF)
 			}
 		}
 	} else if (item.stages) {

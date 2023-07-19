@@ -139,7 +139,7 @@
 			},
 			"minAmount": {
 				"description": "The minimum amount of the item that can be held.",
-				"type": "number"
+				"$ref": "#/$defs/sumSub"
 			},
 			"fillOnUpgrade": {
 				"description": "Whether the item should be filled to its maximum amount when it is upgraded.",
