@@ -1,5 +1,7 @@
 import * as items from "./items.js"
+import * as itemsRender from "/packloader/kh/itemsRender.js"
 import * as maps from "./maps.js"
+import * as mapsRender from "./mapsRender.js"
 
 export function testItems(t) {
 	setTimeout(() => {
@@ -22,10 +24,10 @@ export function testItems(t) {
 
 			for (let item of itemGroups[group]) {
 				if (item["img"] || item.stages && item.stages[0]["img"]) {
-					groupDiv.appendChild(items.generateImageForItem(item))
+					groupDiv.appendChild(itemsRender.generateImageForItem(item))
 					groupDiv.appendChild(document.createTextNode(" "))
 				}
-				groupDiv.appendChild(items.generateTitleForItem(item))
+				groupDiv.appendChild(itemsRender.generateTitleForItem(item))
 				groupDiv.appendChild(document.createElement("br"))
 			}
 			groupDiv.appendChild(document.createElement("br"))
@@ -46,7 +48,7 @@ export function testMaps(t) {
 			let h2 = document.createElement("h2")
 			h2.appendChild(document.createTextNode(mapName))
 			subDiv.appendChild(h2)
-			subDiv.appendChild(maps.generateImageForMap(maps.elements[mapName]))
+			subDiv.appendChild(mapsRender.generateImageForMap(maps.elements[mapName]))
 			testDiv.appendChild(subDiv)
 		}
 		document.body.appendChild(testDiv)

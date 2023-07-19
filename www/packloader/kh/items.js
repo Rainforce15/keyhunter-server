@@ -1,9 +1,9 @@
+import {extracted} from "./packLoader.js";
 import * as base from "./base.js";
 import * as memory from "./memory.js";
-import * as util from "./util.js";
+import {updateItemRender} from "./itemsRender.js";
 
 export let elements = {}
-let extracted
 
 function fixMemArray(mem) {
 	if (mem) for (let memType in mem) {
@@ -88,8 +88,7 @@ function initDomRefs() {
 	}
 }
 
-export function load(extractedFiles, groupDistance) {
-	extracted = extractedFiles
+export function load(groupDistance) {
 	elements = extracted["items.yaml"] || extracted["items.json"]
 	if (!elements) {
 		console.error("no item.yaml/json definition.")
@@ -288,122 +287,6 @@ export function evaluateEntry(entry, val, debugField) {
 	}
 }
 
-export function updateAllItemRender() {
-	for (let itemName in elements) {
-		if (elements[itemName].delayUpdate) {
-			elements[itemName].delayUpdate = false
-			return
-		}
-		updateItemRender(elements[itemName])
-	}
-}
-
-function updateItemRender(item) {
-	let itemImgs = item.imgDomRefs
-	util.log(itemImgs)
-	for(let itemImg of itemImgs) {
-		setImgForStage(item, itemImg)
-	}
-	let itemTitles = item.titleDomRefs
-	util.log(itemTitles)
-	for(let itemTitle of itemTitles) {
-		setTitleForStage(item, itemTitle)
-	}
-}
-
-export function generateImageForItem(item) {
-	let img = document.createElement("img")
-	img.setAttribute("class", `item_img_${item.rendername}`)
-	setImgForStage(item, img)
-	setItemClickHandler(img, item)
-	if (item.imgDomRefs.indexOf(img) === -1) item.imgDomRefs.push(img)
-	return img
-}
-export function generateTitleForItem(item) {
-	let title = document.createElement("span")
-	title.setAttribute("class", `item_title_${item.rendername}`)
-	setTitleForStage(item, title)
-	setItemClickHandler(title, item)
-	if (item.titleDomRefs.indexOf(title) === -1) item.titleDomRefs.push(title)
-	return title
-}
-
-function CreateClickIncrementor(item, increment) {
-	return function(e) {
-		if (e.altKey && e.ctrlKey) adjustStage(item, increment*1000)
-		else if (e.altKey) adjustStage(item, increment*100)
-		else if (e.ctrlKey) adjustStage(item, increment*10)
-		else adjustStage(item, increment)
-		e.preventDefault()
-		return false
-	}
-}
-
-function setItemClickHandler(node, item) {
-	node.item = item
-	let increment = item["increment"] || 1
-	node.onclick = CreateClickIncrementor(item, increment)
-	node.oncontextmenu = CreateClickIncrementor(item, -increment)
-}
-
-function renderItemName(item, name) {
-	let ret
-	if (name.indexOf("$$") > -1) ret = name.replace("$$", item.curStage)
-	else if (item.name && item.name.indexOf("%%") > -1) {
-		if (item.curStage === 0) {
-			if (item.template) {
-				for (let templateName of item.template) {
-					if (elements[`__${templateName}`] && elements[`__${templateName}`].name) {
-						ret = item.name.replace("%%", elements[`__${templateName}`].name)
-						break
-					}
-				}
-			}
-			if (!ret) ret = item.name.replace("%%", "None")
-		} else {
-			ret = item.name.replace("%%", name)
-		}
-	}
-	else ret = name
-	return ret
-}
-
-function setTitleForStage(item, title) {
-	let isOff = !item["noOffStage"] && item.curStage === 0
-	title.setAttribute("style", `user-select: none; color: ${isOff ? "gray" : "lightgray"}`)
-	let curName
-	if (!item.name && !item.stages && item.curStage < 2) curName = item.basename
-	else if (item.name && !item.stages && item.curStage < 2) {
-		curName = item.name
-	} else if (item.stages && item.stages[item.curStage-1] && item.stages[item.curStage-1].name) {
-		curName = item.stages[item.curStage-1].name
-	} else if (item.stages || item.curStage > 1) {
-		if (item.name && item.name.indexOf("$$") > -1) curName = item.name
-		else curName = `${item.name || item.basename}${item.curStage > 0 ? ` [${item.curStage}]` : ""}`
-	} else {
-		curName = item.basename
-	}
-	title.innerHTML = renderItemName(item, curName)
-}
-
-function setImgForStage(item, img) {
-	let isOff = !item["noOffStage"] && item.curStage === 0
-	let imgData
-	let imgBaseStyle = /*"border-radius: 50%; "+*/"user-select: none; image-rendering: crisp-edges; vertical-align: middle; "
-	if (isOff) {
-		imgData = item["imgOff"] || item["img"] || item.stages[0]["img"]
-		img.setAttribute("style", imgBaseStyle+/*"border: 2px solid gray; "+*/(item["imgOff"]?"":"filter: grayscale(100%);"))
-	} else {
-		imgData = item.stages && item.stages[item.curStage - 1]["img"] || item["img"]
-		img.setAttribute("style", imgBaseStyle/*+"border: 2px solid lightgray;"*/)
-	}
-	if (extracted["img/"+imgData]) {
-		img.setAttribute("src", extracted["img/"+imgData])
-	} else {
-		img.setAttribute("src", "/img/imgerror.png")
-	}
-}
-
 function getCapValue(item) {
 	if (item.curStage === 0) return 0
 	return item["capValue"] ||
@@ -428,7 +311,7 @@ function getItemMaxStage(item) {
 	}
 	else return 1
 }
-function adjustStage(item, increment) {
+export function adjustStage(item, increment) {
 	if (increment === 0) return
 	setStage(item, item.curStage + increment)
 }
@@ -519,4 +402,33 @@ function updateGameItemState(item, newStage) {
 	//update rest
 	item.curStage = newStage
 	updateItemRender(item)
+}
+
+function getTemplateName(item) {
+	for (let templateRef of item.template) {
+		let template = elements[`__${templateRef}`]
+		if (template?.name) {
+			return template.name
+		}
+	}
+}
+
+export function getItemName(item) {
+	let name = item.name || getTemplateName(item) || item.basename
+	let curStage = item.curStage
+	let curStageName = item.stages?.[curStage - 1]?.name
+
+	if (name.includes("%%")) {
+		name = name.replaceAll("%%", curStage > 0 ? curStageName : "None")
+	} else {
+		if (curStageName) {
+			name = curStageName
+		}else if (curStage > 1 && !name.includes("$$")) {
+			name = `${name} [${curStage}]`
+		}
+
+		name = name.replaceAll("$$", curStage)
+	}
+
+	return name;
 }

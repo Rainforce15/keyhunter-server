@@ -3,7 +3,9 @@ import { bytesToBase64 } from "/lib/base64.js"
 import * as util from "/packloader/kh/util.js"
 import { avgTimeAction, setTimer, getTimer } from "/packloader/kh/timer.js"
 import * as maps from "/packloader/kh/maps.js"
+import * as mapsRender from "/packloader/kh/mapsRender.js"
 import * as items from "/packloader/kh/items.js"
+import * as itemsRender from "/packloader/kh/itemsRender.js"
 import * as pathing from "/packloader/kh/pathing.js"
 
 let body, dl, dlpb, ex2, ex2pb, conv, convpb, mainProgressBars
@@ -208,12 +210,12 @@ document.addEventListener("keypress", e => {
 		return false;
 	}
 	if (e.key === "3") {
-		if (maps.showEverything()) {
-			maps.showEverything(false)
-			maps.updateAllMapRender()
+		if (mapsRender.showEverything()) {
+			mapsRender.showEverything(false)
+			mapsRender.updateAllMapRender()
 		} else {
-			maps.showEverything(true)
-			maps.updateAllMapRender()
+			mapsRender.showEverything(true)
+			mapsRender.updateAllMapRender()
 		}
 		e.stopPropagation()
 		e.preventDefault()
@@ -268,18 +270,18 @@ function startPack() {
 		timerFrame.appendChild(mapTimeSpan)
 		body.appendChild(timerFrame)
 	}
-	items.load(extracted, groupdistance)
-	maps.load(extracted)
+	items.load(groupdistance)
+	maps.load()
 
 
 	setInterval(()=>{
 		if(!updateLoopInterrupt) {
 			let avgItemCalcTime = avgTimeAction(items.updateAllItemData, "itemCalcTimes")
-			let avgItemRenderTime = avgTimeAction(items.updateAllItemRender, "itemRenderTimes")
+			let avgItemRenderTime = avgTimeAction(itemsRender.updateAllItemRender, "itemRenderTimes")
 			document.getElementById("itemRenderTime").innerHTML = `${avgItemCalcTime} + ${avgItemRenderTime}ms`
 
 			let avgMapCalcTime = avgTimeAction(maps.updateAllMapData, "mapCalcTimes")
-			let avgMapRenderTime = avgTimeAction(maps.updateAllMapRender, "mapRenderTimes")
+			let avgMapRenderTime = avgTimeAction(mapsRender.updateAllMapRender, "mapRenderTimes")
 			document.getElementById("mapRenderTime").innerHTML = `${avgMapCalcTime} + ${avgMapRenderTime}ms`
 		}
 	}, 500)
