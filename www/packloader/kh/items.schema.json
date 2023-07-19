@@ -65,7 +65,7 @@
 			"additionalProperties": false,
 			"properties": {
 				"name": {
-					"description": "The (renderable) name of the item. $$ in the main name can be used to insert the current item stage name.",
+					"description": "The (renderable) name of the item. Use $$ to insert the current numeric item stage/amount, and %% to insert the current item stage name if defined.",
 					"type": "string"
 				},
 				"img": {
