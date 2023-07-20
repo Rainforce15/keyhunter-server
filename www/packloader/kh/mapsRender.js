@@ -1,4 +1,3 @@
-import * as util from "./util.js";
 import {elements, getFactored, hasDefinedConnections} from "./maps.js";
 import {extracted} from "./packLoader.js";
 import * as items from "./items.js";
@@ -117,17 +116,6 @@ function updateMapRender(map) {
 			setDataForMapLoc(locData, locImg)
 		}
 	}
-}
-
-function setDataForMapPart(partData, img) {
-	let partDataImgStage = partData["imgStage"]
-	let partDataImg = partData["img"]
-	if (partDataImgStage) img.setAttribute("src", extracted[`img/${partDataImg[items.elements[partDataImgStage].curStage]}`])
-	else img.setAttribute("src", extracted[`img/${partDataImg}`])
-	let style = "image-rendering:crisp-edges;"
-	style += getStyleXYWHV(partData)
-	if (partData["layer"]) style += `z-index:${partData["layer"]};`
-	img.setAttribute("style", style)
 }
 
 function getStyleXYWHV(obj) {

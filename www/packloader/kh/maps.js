@@ -49,9 +49,6 @@ export function load() {
 			let locData = map[locName]
 			if (locData === undefined) continue
 			if (!locData.connectedToEntryPoint && hasDefinedConnections(locData)) {
-				if (locName == "startArea") {
-					console.log("startAreaMap?", mapName);
-				}
 				lostLocs.push(`${mapName}::${locName}`)
 			}
 		}
