@@ -9,9 +9,9 @@ export function testItems(t) {
 		addTestHeader("Item Test", testDiv, document.body)
 		let itemGroups = {}
 		for (let itemName in items.elements) {
-			if (itemName.startsWith("__")) continue
+			if (itemName.startsWith(".")) continue
 			let item = items.elements[itemName]
-			let groupName = item.template && item.template[item.template.length-1] || (item.basename.startsWith("__") ? "__hidden" : "(no template)")
+			let groupName = item.template && item.template[item.template.length-1] || (item.basename.startsWith(".") ? ".hidden" : "(no template)")
 			if (!itemGroups[groupName]) itemGroups[groupName] = []
 			itemGroups[groupName].push(item)
 		}
@@ -42,7 +42,7 @@ export function testMaps(t) {
 		let testDiv = document.createElement("div")
 		addTestHeader("Map Test", testDiv, document.body)
 		for (let mapName in maps.elements) {
-			if (mapName.startsWith("__")) continue
+			if (mapName.startsWith(".")) continue
 			let subDiv = document.createElement("div")
 			subDiv.setAttribute("style", "display:inline-block;margin:8px;")
 			let h2 = document.createElement("h2")

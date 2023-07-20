@@ -14,18 +14,17 @@ export function load() {
 		let map = elements[mapName]
 		let mapParts = map["parts"]
 		if (mapParts) {
-			base.applyTemplates(mapParts, elements["__templates"]["parts"])
+			base.applyTemplates(mapParts, elements[".templates"]["parts"])
 			base.applyBaseRendername(mapParts)
 			for (let partName in mapParts) {
 				mapParts[partName].parentMapName = map.basename
 				mapParts[partName].domRefs = []
 				extractXYWH(mapParts[partName])
-
 			}
 		}
 		let mapLocations = map["locations"]
 		if (mapLocations) {
-			base.applyTemplates(mapLocations, elements["__templates"]["locations"])
+			base.applyTemplates(mapLocations, elements[".templates"]["locations"])
 			base.applyBaseRendername(mapLocations)
 			for (let locName in mapLocations) {
 				let locData = mapLocations[locName]
@@ -39,7 +38,7 @@ export function load() {
 				if (locData.items) {
 					if (typeof locData.items === "string") locData.items = [locData.items]
 					for (let i = 0; i < locData.items.length; i++) {
-						if (locData.items[i] === "@" && !locName.startsWith("__")) locData.items[i] = locName
+						if (locData.items[i] === "@" && !locName.startsWith(".")) locData.items[i] = locName
 					}
 					locData.itemsLeft = locData.items.length
 
@@ -71,7 +70,7 @@ export function load() {
 			}
 		}
 	}
-	let lostNonTemplates = lostLocs.filter(e => !e.startsWith("__"))
+	let lostNonTemplates = lostLocs.filter(e => !e.startsWith("."))
 	if (lostNonTemplates.length > 0) console.warn(`unconnected location(s): ${lostNonTemplates.join(", ")}`)
 
 	console.log(elements)

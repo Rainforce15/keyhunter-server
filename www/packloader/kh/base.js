@@ -16,7 +16,7 @@ export function applyTemplates(obj, templateSource, type) {
 		if (!entry.template) continue
 		if (typeof entry.template === "string") entry.template = [entry.template]
 		for (let templateName of entry.template) {
-			let template = templateSource[`__${templateName}`]
+			let template = templateSource[templateName]
 			if (!template) {
 				console.error("no template found for key: ", templateName)
 				console.log("templateSource: ", templateSource)
@@ -82,7 +82,7 @@ export function applyTemplates(obj, templateSource, type) {
 							let flag = entry[memKey][memType][flagIndex]
 							if (entry.template) {
 								for (let innerTemplateName of entry.template) {
-									let innerTemplate = templateSource[`__${innerTemplateName}`]
+									let innerTemplate = templateSource[innerTemplateName]
 									if (innerTemplate) {
 										if (!flag[0] && innerTemplate[memKey]?.[memType]?.[flagIndex]?.[0]) {
 											flag[0] = innerTemplate[memKey][memType][flagIndex][0]

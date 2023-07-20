@@ -27,6 +27,10 @@ export function generateImageForMap(map) {
 			let mapImgElement = document.createElement("img")
 			mapImgElement.setAttribute("class", `map_img_${map.rendername}__${partData.rendername}`)
 			setDataForMapPart(partData, mapImgElement)
+			if (!partData.domRefs) {
+				console.log("no domRefs?", partData)
+				throw "here."
+			}
 			partData.domRefs.push(mapImgElement)
 			mapDiv.appendChild(mapImgElement)
 		}

@@ -70,7 +70,6 @@ function parseItemMemStringsAndIndex(groupDistance) {
 	base.applyTemplates(elements, elements, "item")
 	for (let itemName in elements) {
 		let item = elements[itemName]
-		//if (itemName.substr(0, 2) === "__") continue
 		buildCountIgnoreMap(item)
 		buildMaxCaps(item)
 
@@ -407,7 +406,7 @@ function updateGameItemState(item, newStage) {
 
 function getTemplateName(item) {
 	for (let templateRef of item.template) {
-		let template = elements[`__${templateRef}`]
+		let template = elements[templateRef]
 		if (template?.name) {
 			return template.name
 		}
