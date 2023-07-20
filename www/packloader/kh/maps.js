@@ -12,16 +12,7 @@ export function load() {
 	base.applyBaseRendername(elements)
 	for (let mapName in elements) {
 		let map = elements[mapName]
-		let mapParts = map["parts"]
-		if (mapParts) {
-			base.applyTemplates(mapParts, elements[".templates"]["parts"])
-			base.applyBaseRendername(mapParts)
-			for (let partName in mapParts) {
-				mapParts[partName].parentMapName = map.basename
-				mapParts[partName].domRefs = []
-				extractXYWH(mapParts[partName])
-			}
-		}
+
 		let mapLocations = map["locations"]
 		if (mapLocations) {
 			base.applyTemplates(mapLocations, elements[".templates"]["locations"])

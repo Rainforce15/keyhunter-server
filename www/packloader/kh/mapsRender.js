@@ -19,21 +19,6 @@ export function generateImageForMap(map) {
 	let mapDiv = document.createElement("div")
 	mapDiv.setAttribute("style", "position: relative; display: inline-block; overflow: hidden")
 	mapDiv.setAttribute("class", "__mapFrame")
-	let mapParts = map["parts"]
-	if (mapParts) {
-		for (let mapPart in mapParts) {
-			let partData = mapParts[mapPart]
-			let mapImgElement = document.createElement("img")
-			mapImgElement.setAttribute("class", `map_img_${map.rendername}__${partData.rendername}`)
-			setDataForMapPart(partData, mapImgElement)
-			if (!partData.domRefs) {
-				console.log("no domRefs?", partData)
-				throw "here."
-			}
-			partData.domRefs.push(mapImgElement)
-			mapDiv.appendChild(mapImgElement)
-		}
-	}
 
 	let mapLocations = map["locations"]
 	if (mapLocations) {
@@ -54,6 +39,10 @@ export function generateImageForMap(map) {
 				if (locData["connectsOneWayFrom"]) locData.conDesc += "connects oneway from:\n    " + generateConDesc(locData, "connectsOneWayFrom")
 
 				setDataForMapLoc(locData, locElement)
+				if (!locData.domRefs) {
+					console.log("no domRefs?", locData)
+					throw "here."
+				}
 				locData.domRefs.push(locElement)
 				mapDiv.appendChild(locElement)
 			}
@@ -124,17 +113,6 @@ export function updateAllMapRender() {
 }
 
 function updateMapRender(map) {
-	let mapParts = map["parts"]
-	if (mapParts) {
-		for (let partName in mapParts) {
-			let part = mapParts[partName]
-			let mapImgs = part.domRefs
-			util.log(mapImgs)
-			for(let i = 0; i < mapImgs.length; i++) {
-				setDataForMapPart(part, mapImgs[i])
-			}
-		}
-	}
 	let mapLocations = map["locations"]
 	if (mapLocations) {
 		for (let locName in mapLocations) {
@@ -173,6 +151,8 @@ function getStyleXYWHV(obj) {
 function getStyleVisibility(obj) {
 	if (obj.visible === true) return ""
 	if (obj.visible && !items.evaluateAnd(obj.visible, obj.basename)) return "visibility: hidden;"
+
+	if (!hasDefinedConnections(obj)) return ""
 
 	let doNotRender = obj.pathingStatus < 1 || !obj.itemsLeft
 	if (!_showEverything && doNotRender) return "visibility: hidden;"
