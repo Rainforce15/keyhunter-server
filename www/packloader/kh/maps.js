@@ -9,39 +9,34 @@ export function load() {
 	elements = extracted["maps.yaml"] || extracted["maps.json"]
 	console.log("loading maps...")
 	console.log(elements)
-	base.applyBaseRendername(elements)
 	for (let mapName in elements) {
 		let map = elements[mapName]
-
-		let mapLocations = map["locations"]
-		if (mapLocations) {
-			base.applyTemplates(mapLocations, elements[".templates"]["locations"])
-			base.applyBaseRendername(mapLocations)
-			for (let locName in mapLocations) {
-				let locData = mapLocations[locName]
-				if (locData === undefined) {
-					console.error("Empty Location:", locName)
-					continue
-				}
-				locData.parentMapName = map.basename
-				extractXYWH(locData)
-				if (locData.item && !locData.items) locData.items = locData.item
-				if (locData.items) {
-					if (typeof locData.items === "string") locData.items = [locData.items]
-					for (let i = 0; i < locData.items.length; i++) {
-						if (locData.items[i] === "@" && !locName.startsWith(".")) locData.items[i] = locName
-					}
-					locData.itemsLeft = locData.items.length
-
-				} else {
-					locData.itemsLeft = 0
-				}
-				locData.domRefs = []
-				locData.lineDomRefs = {}
-				fixAndLinkBackAndForth(locData, "connectsTo", map)
-				fixAndLinkBackAndForth(locData, "connectsOneWayTo", map, "connectsOneWayFrom")
-				fixAndLinkBackAndForth(locData, "connectsOneWayFrom", map, "connectsOneWayTo")
+		base.applyBaseRendername(map)
+		base.applyTemplates(map, elements[".templates"])
+		for (let locName in map) {
+			let locData = map[locName]
+			if (locData === undefined) {
+				console.error("Empty Location:", locName)
+				continue
 			}
+			locData.parentMapName = mapName
+			extractXYWH(locData)
+			if (locData.item && !locData.items) locData.items = locData.item
+			if (locData.items) {
+				if (typeof locData.items === "string") locData.items = [locData.items]
+				for (let i = 0; i < locData.items.length; i++) {
+					if (locData.items[i] === "@" && !locName.startsWith(".")) locData.items[i] = locName
+				}
+				locData.itemsLeft = locData.items.length
+
+			} else {
+				locData.itemsLeft = 0
+			}
+			locData.domRefs = []
+			locData.lineDomRefs = {}
+			fixAndLinkBackAndForth(locData, "connectsTo", map, mapName)
+			fixAndLinkBackAndForth(locData, "connectsOneWayTo", map, mapName, "connectsOneWayFrom")
+			fixAndLinkBackAndForth(locData, "connectsOneWayFrom", map, mapName, "connectsOneWayTo")
 		}
 	}
 
@@ -50,14 +45,14 @@ export function load() {
 	let lostLocs = []
 	for (let mapName in elements) {
 		let map = elements[mapName]
-		let mapLocations = map["locations"]
-		if (mapLocations) {
-			for (let locName in mapLocations) {
-				let locData = mapLocations[locName]
-				if (locData === undefined) continue
-				if (!locData.connectedToEntryPoint && hasDefinedConnections(locData)) {
-					lostLocs.push(`${mapName}::${locName}`)
+		for (let locName in map) {
+			let locData = map[locName]
+			if (locData === undefined) continue
+			if (!locData.connectedToEntryPoint && hasDefinedConnections(locData)) {
+				if (locName == "startArea") {
+					console.log("startAreaMap?", mapName);
 				}
+				lostLocs.push(`${mapName}::${locName}`)
 			}
 		}
 	}
@@ -67,7 +62,7 @@ export function load() {
 	console.log("done")
 }
 
-function fixAndLinkBackAndForth(loc, attribute, map, backAttribute) {
+function fixAndLinkBackAndForth(loc, attribute, map, mapName, backAttribute) {
 	if (!loc[attribute]) return
 	if (!backAttribute) backAttribute = attribute
 	if (typeof loc[attribute] === "string") {
@@ -86,12 +81,12 @@ function fixAndLinkBackAndForth(loc, attribute, map, backAttribute) {
 		loc[attribute][connectionName] = fixUpReq(loc[attribute][connectionName])
 
 		let connectionData = loc[attribute][connectionName]
-		if (connectionMap["locations"][connectionLoc]) {
-			let target = connectionMap["locations"][connectionLoc]
+		if (connectionMap[connectionLoc]) {
+			let target = connectionMap[connectionLoc]
 			connectionData.ref = target
 			let locName;
 			if (connectionMap !== map) {
-				locName = `${map.basename}::${loc.basename}`
+				locName = `${mapName}::${loc.basename}`
 			} else {
 				locName = loc.basename
 			}
@@ -151,20 +146,17 @@ export function updateAllMapData() {
 
 	for (let mapName in elements) {
 		let map = elements[mapName]
-		let mapLocations = map["locations"]
-		if (mapLocations) {
-			for (let locName in mapLocations) {
-				let locData = mapLocations[locName]
-				if (locData === undefined) continue
-				if (locData.items) {
-					let oldItemsLeft = locData.itemsLeft
-					locData.itemsLeft = 0
-					for (let item of locData.items) {
-						if (!items.evaluateEntry(item, undefined, `itemsLeft count of ${locData.basename}`)) locData.itemsLeft++
-					}
-					if (locData.pathingStatus === -1 && locData.itemsLeft < locData.items.length && oldItemsLeft !== locData.itemsLeft) {
-						console.warn ("Out of logic with current items?:", locData.basename, `; items Left from pathing: ${oldItemsLeft}, but actual number is ${locData.itemsLeft}`, locData)
-					}
+		for (let locName in map) {
+			let locData = map[locName]
+			if (locData === undefined) continue
+			if (locData.items) {
+				let oldItemsLeft = locData.itemsLeft
+				locData.itemsLeft = 0
+				for (let item of locData.items) {
+					if (!items.evaluateEntry(item, undefined, `itemsLeft count of ${locData.basename}`)) locData.itemsLeft++
+				}
+				if (locData.pathingStatus === -1 && locData.itemsLeft < locData.items.length && oldItemsLeft !== locData.itemsLeft) {
+					console.warn ("Out of logic with current items?:", locData.basename, `; items Left from pathing: ${oldItemsLeft}, but actual number is ${locData.itemsLeft}`, locData)
 				}
 			}
 		}

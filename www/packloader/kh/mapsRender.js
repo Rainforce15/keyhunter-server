@@ -20,32 +20,28 @@ export function generateImageForMap(map) {
 	mapDiv.setAttribute("style", "position: relative; display: inline-block; overflow: hidden")
 	mapDiv.setAttribute("class", "__mapFrame")
 
-	let mapLocations = map["locations"]
-	if (mapLocations) {
-		for (let locName in mapLocations) {
-			let locData = mapLocations[locName]
-			if (locData === undefined) continue
-			if (locData["connectsTo"] || locData["connectsOneWayTo"]) {
-				console.log(locName, locData)
-				generateLineData(locData, "connectsTo", mapDiv)
-				generateLineData(locData, "connectsOneWayTo", mapDiv)
-			}
-			if (locData["img"]) {
-				let locElement = document.createElement("img")
-				locElement.setAttribute("class", `map_location map_img_${map.rendername}__${locData.rendername}`)
-				locData.conDesc = ""
-				if (locData["connectsTo"]) locData.conDesc += "connects to:\n    " + generateConDesc(locData, "connectsTo") + "\n"
-				if (locData["connectsOneWayTo"]) locData.conDesc += "connects oneway to:\n    " + generateConDesc(locData, "connectsOneWayTo") + "\n"
-				if (locData["connectsOneWayFrom"]) locData.conDesc += "connects oneway from:\n    " + generateConDesc(locData, "connectsOneWayFrom")
+	for (let locName in map) {
+		let locData = map[locName]
+		if (locData === undefined) continue
+		if (locData["connectsTo"] || locData["connectsOneWayTo"]) {
+			generateLineData(locData, "connectsTo", mapDiv)
+			generateLineData(locData, "connectsOneWayTo", mapDiv)
+		}
+		if (locData["img"]) {
+			let locElement = document.createElement("img")
+			locElement.setAttribute("class", `map_location map_img_${map.rendername}__${locData.rendername}`)
+			locData.conDesc = ""
+			if (locData["connectsTo"]) locData.conDesc += "connects to:\n    " + generateConDesc(locData, "connectsTo") + "\n"
+			if (locData["connectsOneWayTo"]) locData.conDesc += "connects oneway to:\n    " + generateConDesc(locData, "connectsOneWayTo") + "\n"
+			if (locData["connectsOneWayFrom"]) locData.conDesc += "connects oneway from:\n    " + generateConDesc(locData, "connectsOneWayFrom")
 
-				setDataForMapLoc(locData, locElement)
-				if (!locData.domRefs) {
-					console.log("no domRefs?", locData)
-					throw "here."
-				}
-				locData.domRefs.push(locElement)
-				mapDiv.appendChild(locElement)
+			setDataForMapLoc(locData, locElement)
+			if (!locData.domRefs) {
+				console.log("no domRefs?", locData)
+				throw "here."
 			}
+			locData.domRefs.push(locElement)
+			mapDiv.appendChild(locElement)
 		}
 	}
 
@@ -113,15 +109,12 @@ export function updateAllMapRender() {
 }
 
 function updateMapRender(map) {
-	let mapLocations = map["locations"]
-	if (mapLocations) {
-		for (let locName in mapLocations) {
-			let locData = mapLocations[locName]
-			if (locData === undefined) continue
-			let locImgs = locData.domRefs
-			for (let locImg of locImgs) {
-				setDataForMapLoc(locData, locImg)
-			}
+	for (let locName in map) {
+		let locData = map[locName]
+		if (locData === undefined) continue
+		let locImgs = locData.domRefs
+		for (let locImg of locImgs) {
+			setDataForMapLoc(locData, locImg)
 		}
 	}
 }

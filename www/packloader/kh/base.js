@@ -7,6 +7,15 @@ export function applyBaseRendername(obj) {
 	}
 }
 
+function cloneObj(obj) {
+	try {
+		return JSON.parse(JSON.stringify(obj))
+	} catch (e) {
+		console.error("could not clone obj: ", obj)
+		throw e
+	}
+}
+
 export function applyTemplates(obj, templateSource, type) {
 	if (!templateSource) templateSource = obj
 	for (let key in obj) {
@@ -23,7 +32,9 @@ export function applyTemplates(obj, templateSource, type) {
 			}
 			if (template.template) entry.template = [...entry.template, ...template.template]
 			for (let tKey in template) {
-				if (entry[tKey] === undefined) entry[tKey] = JSON.parse(JSON.stringify(template[tKey]))
+				if (entry[tKey] === undefined) {
+					entry[tKey] = cloneObj(template[tKey])
+				}
 			}
 			if (type === "item") {
 				// --stages--

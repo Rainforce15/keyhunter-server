@@ -10,9 +10,20 @@
 				{"type": "string"}
 			]
 		},
-		"part": {
+		"location": {
 			"additionalProperties": false,
 			"properties": {
+				"item": {
+					"description": "Associated item. use \"@\" to apply the current location's name as the checked item name (e.G. if it is a chest).",
+					"type": "string"
+				},
+				"items": {
+					"description": "Associated item, or a list thereof. use \"@\" to apply the current location's name as the checked item name (e.G. if it is a chest).",
+					"anyOf": [
+						{"type": "string"},
+						{"type": "array", "items": {"type": "string"}}
+					]
+				},
 				"img": {
 					"description": "Image file path to use",
 					"anyOf": [
@@ -129,45 +140,7 @@
 						{"type": "number"},
 						{"type": "array", "length": 2, "items": {"type": "number"}}
 					]
-				}
-			}
-		},
-		"location": {
-			"$ref": "#/$defs/part",
-			"properties": {
-				"item": {
-					"description": "Associated item. use \"@\" to apply the current location's name as the checked item name (e.G. if it is a chest).",
-					"type": "string"
 				},
-				"items": {
-					"description": "Associated item, or a list thereof. use \"@\" to apply the current location's name as the checked item name (e.G. if it is a chest).",
-					"anyOf": [
-						{"type": "string"},
-						{"type": "array", "items": {"type": "string"}}
-					]
-				}
-			}
-		},
-		"templatablePart": {
-			"description": "Part",
-			"$ref": "#/$defs/part",
-			"properties": {
-				"imgStage": {
-					"description": "specifies which img entry to use based on the declared item's stage.",
-					"type": "string"
-				}
-			},
-			"patternProperties": {
-				"^t(emplate)?$": {
-					"description": "Template to use, without the leading underscores. Can reference an element of the __template entry of the appropriate type.",
-					"type": "string"
-				}
-			}
-		},
-		"templatableLocation": {
-			"description": "Part",
-			"$ref": "#/$defs/location",
-			"properties": {
 				"entryPoint": {
 					"description": "If the given location is a starting point. Used for pathing.",
 					"anyOf": [
@@ -244,42 +217,8 @@
 	},
 	"additionalProperties": {
 		"description": "Map Entry",
-		"additionalProperties": false,
-		"properties": {
-			"parts": {
-				"additionalProperties": {"$ref": "#/$defs/templatablePart"}
-			},
-			"locations": {
-				"additionalProperties": {"$ref": "#/$defs/templatableLocation"}
-			}
-		}
-	},
-	"properties": {
-		"__templates": {
-			"description": "Templates for map generation",
-			"additionalProperties": false,
-			"properties": {
-				"parts": {
-					"description": "Parts templates",
-					"additionalProperties": false,
-					"patternProperties": {
-						"^__.+$": {
-							"description": "Part template",
-							"$ref": "#/$defs/part"
-						}
-					}
-				},
-				"locations": {
-					"description": "Locations templates",
-					"additionalProperties": false,
-					"patternProperties": {
-						"^__.+$": {
-							"description": "Location template",
-							"$ref": "#/$defs/location"
-						}
-					}
-				}
-			}
+		"additionalProperties": {
+			"$ref": "#/$defs/location"
 		}
 	}
 }

@@ -22,14 +22,11 @@ export function pathMaps(elements) {
 	//clear pathing
 	for (let mapName in elements) {
 		let map = elements[mapName]
-		let mapLocations = map["locations"]
-		if (mapLocations) {
-			for (let locName in mapLocations) {
-				let loc = mapLocations[locName]
-				if (loc === undefined) continue
-				loc.pathingStatus = 0
-				if (isEntryPoint(loc)) entryPoints.push([map, loc])
-			}
+		for (let locName in map) {
+			let loc = map[locName]
+			if (loc === undefined) continue
+			loc.pathingStatus = 0
+			if (isEntryPoint(loc)) entryPoints.push([map, loc])
 		}
 	}
 	if (_debug) console.log("Detected Entry Points: ", entryPoints.map(e=>`${e[0].basename}::${e[1].basename}`).join(",  "))
@@ -43,13 +40,10 @@ export function pathMaps(elements) {
 	//round up the remainders
 	for (let mapName in elements) {
 		let map = elements[mapName]
-		let mapLocations = map["locations"]
-		if (mapLocations) {
-			for (let locName in mapLocations) {
-				let loc = mapLocations[locName]
-				if (loc === undefined) continue
-				if (loc.pathingStatus === 0) loc.pathingStatus = -1
-			}
+		for (let locName in map) {
+			let loc = map[locName]
+			if (loc === undefined) continue
+			if (loc.pathingStatus === 0) loc.pathingStatus = -1
 		}
 	}
 	_debug = false
@@ -214,14 +208,11 @@ export function checkPaths(elements) {
 	console.log("clearing connectedToEntryPoint")
 	for (let mapName in elements) {
 		let map = elements[mapName]
-		let mapLocations = map["locations"]
-		if (mapLocations) {
-			for (let locName in mapLocations) {
-				let loc = mapLocations[locName]
-				if (loc === undefined) continue
-				loc.connectedToEntryPoint = false
-				if (loc["entryPoint"]) entryPoints.push([map, loc])
-			}
+		for (let locName in map) {
+			let loc = map[locName]
+			if (loc === undefined) continue
+			loc.connectedToEntryPoint = false
+			if (loc["entryPoint"]) entryPoints.push([map, loc])
 		}
 	}
 	console.log("validating...")
