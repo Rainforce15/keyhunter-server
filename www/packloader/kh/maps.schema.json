@@ -33,9 +33,9 @@
 					"$ref": "#/$defs/numericOrRef",
 					"anyOf": [{"type": "array", "length": 2, "items": {"$ref": "#/$defs/numericOrRef"}}]
 				},
-				"top": {
-					"description": "If the image is rendered above others",
-					"type": "boolean"
+				"layer": {
+					"description": "layer to render it on",
+					"type": "integer"
 				},
 				"visible": {
 					"$ref": "#/$defs/itemComparisons"

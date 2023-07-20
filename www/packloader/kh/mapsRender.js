@@ -23,7 +23,6 @@ export function generateImageForMap(map) {
 	if (mapParts) {
 		for (let mapPart in mapParts) {
 			let partData = mapParts[mapPart]
-			if (partData.top) continue
 			let mapImgElement = document.createElement("img")
 			mapImgElement.setAttribute("class", `map_img_${map.rendername}__${partData.rendername}`)
 			setDataForMapPart(partData, mapImgElement)
@@ -60,17 +59,6 @@ export function generateImageForMap(map) {
 		}
 	}
 
-	if (mapParts) {
-		for (let mapPart in mapParts) {
-			let partData = mapParts[mapPart]
-			if (!partData.top) continue
-			let mapImgElement = document.createElement("img")
-			mapImgElement.setAttribute("class", `map_img_${map.rendername}__${partData.rendername}`)
-			setDataForMapPart(partData, mapImgElement)
-			partData.domRefs.push(mapImgElement)
-			mapDiv.appendChild(mapImgElement)
-		}
-	}
 	return mapDiv
 }
 
@@ -166,6 +154,7 @@ function setDataForMapPart(partData, img) {
 	else img.setAttribute("src", extracted[`img/${partDataImg}`])
 	let style = "image-rendering:crisp-edges;"
 	style += getStyleXYWHV(partData)
+	if (partData["layer"]) style += `z-index:${partData["layer"]};`
 	img.setAttribute("style", style)
 }
 
@@ -184,6 +173,7 @@ function getStyleXYWHV(obj) {
 function setDataForMapLoc(locData, img) {
 	let style = "image-rendering:crisp-edges;"
 	style += getStyleXYWHV(locData)
+	if (locData["layer"]) style += `z-index:${locData["layer"]};`
 	if (locData.pathingStatus === -1) {
 		let imgData = locData["imgOff"] || locData["img"]
 		if (imgData) img.setAttribute("src", extracted[`img/${imgData}`])
