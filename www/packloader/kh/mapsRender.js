@@ -1,5 +1,5 @@
 import * as util from "./util.js";
-import {elements, getFactored} from "./maps.js";
+import {elements, getFactored, hasDefinedConnections} from "./maps.js";
 import {extracted} from "./packLoader.js";
 import * as items from "./items.js";
 
@@ -40,7 +40,7 @@ export function generateImageForMap(map) {
 		for (let locName in mapLocations) {
 			let locData = mapLocations[locName]
 			if (locData === undefined) continue
-			if (locData["connectsTo"]) {
+			if (locData["connectsTo"] || locData["connectsOneWayTo"]) {
 				console.log(locName, locData)
 				generateLineData(locData, "connectsTo", mapDiv)
 				generateLineData(locData, "connectsOneWayTo", mapDiv)
@@ -48,9 +48,10 @@ export function generateImageForMap(map) {
 			if (locData["img"]) {
 				let locElement = document.createElement("img")
 				locElement.setAttribute("class", `map_location map_img_${map.rendername}__${locData.rendername}`)
-				locData.conDesc =  (locData["connectsTo"]?"connects to:\n    "+generateConDesc(locData, "connectsTo")+"\n":"")+
-					(locData["connectsOneWayTo"]?"connects oneway to:\n    " + generateConDesc(locData, "connectsOneWayTo")+"\n":"") +
-					(locData["connectsOneWayFrom"]?"connects oneway from:\n    " + generateConDesc(locData, "connectsOneWayFrom"):"")
+				locData.conDesc = ""
+				if (locData["connectsTo"]) locData.conDesc += "connects to:\n    " + generateConDesc(locData, "connectsTo") + "\n"
+				if (locData["connectsOneWayTo"]) locData.conDesc += "connects oneway to:\n    " + generateConDesc(locData, "connectsOneWayTo") + "\n"
+				if (locData["connectsOneWayFrom"]) locData.conDesc += "connects oneway from:\n    " + generateConDesc(locData, "connectsOneWayFrom")
 
 				setDataForMapLoc(locData, locElement)
 				locData.domRefs.push(locElement)
@@ -165,8 +166,25 @@ function getStyleXYWHV(obj) {
 	if (obj.y !== undefined) style += `top:${getFactored(obj, "y")}px;`
 	if (obj.width !== undefined) style += `width:${obj.width}px;`
 	if (obj.height !== undefined) style += `height:${obj.height}px;`
-	if (obj.visible && !items.evaluateAnd(obj.visible, obj.basename)) style += "visibility: hidden;"
+	style += getStyleVisibility(obj)
 	return style
+}
+
+function getStyleVisibility(obj) {
+	if (obj.visible === true) return ""
+	if (obj.visible && !items.evaluateAnd(obj.visible, obj.basename)) return "visibility: hidden;"
+
+	let doNotRender = obj.pathingStatus < 1 || !obj.itemsLeft
+	if (!_showEverything && doNotRender) return "visibility: hidden;"
+
+	return ""
+}
+
+function getSuitableImg(locData) {
+	let partDataImgStage = locData["imgStage"]
+	let partDataImg = locData["img"]
+	if (partDataImgStage) return partDataImg[items.elements[partDataImgStage].curStage]
+	return locData["img"]
 }
 
 
@@ -174,23 +192,22 @@ function setDataForMapLoc(locData, img) {
 	let style = "image-rendering:crisp-edges;"
 	style += getStyleXYWHV(locData)
 	if (locData["layer"]) style += `z-index:${locData["layer"]};`
+
+	let imgData = undefined
 	if (locData.pathingStatus === -1) {
-		let imgData = locData["imgOff"] || locData["img"]
-		if (imgData) img.setAttribute("src", extracted[`img/${imgData}`])
-		else img.setAttribute("src", "/img/imgerror.png")
-		if (!locData["imgOff"]) style += "filter: grayscale(66%);"
+		imgData = locData["imgOff"] || getSuitableImg(locData)
+		if (!locData["imgOff"] && !locData.visible === true) style += "filter: grayscale(66%);"
 	}else if (locData.pathingStatus === 1 && !locData.itemsLeft) {
-		let imgData = locData["img"]
-		if (imgData) img.setAttribute("src", extracted[`img/${imgData}`])
-		else img.setAttribute("src", "/img/imgerror.png")
+		imgData = getSuitableImg(locData)
 		style += "filter: grayscale(100%);"
 	} else if (locData.pathingStatus > 0) {
-		let imgData = locData["img"]
-		if (imgData) img.setAttribute("src", extracted[`img/${imgData}`])
-		else img.setAttribute("src", "/img/imgerror.png")
+		imgData = getSuitableImg(locData)
 	}
-	if (!_showEverything && (locData.pathingStatus < 1 || !locData.itemsLeft)) style += "visibility: hidden;"
-	img.setAttribute(
+
+	if (imgData) img.setAttribute("src", extracted[`img/${imgData}`])
+	else img.setAttribute("src", "/img/imgerror.png")
+
+	if (hasDefinedConnections(locData)) img.setAttribute(
 		"title",
 		`${locData.basename} (${pathValues[locData.pathingStatus]}${locData.items ? ", " + locData.itemsLeft + "/" + locData.items.length + " items left" : ""})\n${locData.conDesc}`
 	)

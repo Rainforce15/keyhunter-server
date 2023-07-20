@@ -64,14 +64,13 @@ export function load() {
 			for (let locName in mapLocations) {
 				let locData = mapLocations[locName]
 				if (locData === undefined) continue
-				if (!locData.connectedToEntryPoint) {
+				if (!locData.connectedToEntryPoint && hasDefinedConnections(locData)) {
 					lostLocs.push(`${mapName}::${locName}`)
 				}
 			}
 		}
 	}
-	let lostNonTemplates = lostLocs.filter(e => !e.startsWith("."))
-	if (lostNonTemplates.length > 0) console.warn(`unconnected location(s): ${lostNonTemplates.join(", ")}`)
+	if (lostLocs.length > 0) console.warn(`unconnected location(s): ${lostLocs.join(", ")}`)
 
 	console.log(elements)
 	console.log("done")
@@ -179,6 +178,10 @@ export function updateAllMapData() {
 			}
 		}
 	}
+}
+
+export function hasDefinedConnections(locData) {
+	return locData["connectsTo"] || locData["connectsOneWayTo"] || locData["connectsOneWayFrom"]
 }
 
 export function getFactored(obj, xy) {

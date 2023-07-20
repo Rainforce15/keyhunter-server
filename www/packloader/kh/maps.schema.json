@@ -186,6 +186,10 @@
 				"connectsOneWayFrom": {
 					"description": "Which other locations this location can be reached from, but not go to itself. Used for pathing.",
 					"$ref": "#/$defs/connectsToEntry"
+				},
+				"imgStage": {
+					"description": "specifies which img entry to use based on the declared item's stage.",
+					"type": "string"
 				}
 			},
 			"patternProperties": {
@@ -199,6 +203,7 @@
 			"additionalProperties": false,
 			"description": "Collection of items to check for. Accepts an item name, or an object with item name keys with concrete numeric values, a list of accepted values or comparisons like \"<5\"",
 			"anyOf": [
+				{"type": "boolean"},
 				{"type": "string"},
 				{"type": "array", "items": "string"},
 				{
