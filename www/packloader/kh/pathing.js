@@ -151,7 +151,7 @@ function pathConnectionsDebug(loc, prev, oneWay) {
 	return loc.pathingStatus === 1
 }
 
-function checkTwoWayConnections(loc, indent) {
+function checkTwoWayConnections(loc) {
 	let locConnectsTo = loc["connectsTo"]
 	for (let connectionName in locConnectsTo || []) {
 		let connectionData = locConnectsTo[connectionName]
@@ -181,7 +181,6 @@ function checkTwoWayConnectionsDebug(loc, indent) {
 }
 
 function checkOneWayConnections(loc, oneWayPropagation, indent) {
-	let conCount = 0
 	let locConnectsOneWayTo = loc["connectsOneWayTo"]
 	for (let connectionName in locConnectsOneWayTo || []) {
 		let connectionData = locConnectsOneWayTo[connectionName]
