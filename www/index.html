@@ -14,8 +14,63 @@
 <!--	<script src="/packloader/et/etpackLoader.js"></script>-->
 
 	<script type="module">
-		import { extracted, loadPack } from "/packloader/kh/packLoader.js";
-		await loadPack("/p/OoA.zip");
+		import {loadPack} from "/packloader/kh/packLoader.js";
+		import {formatPerc, removeAllChildren} from "/packloader/kh/util.js"
+
+		function ProgressBarUpdater(id) {
+			return function updateProgressBar(current, total, startTime) {
+				let perc2 = formatPerc(current, total)
+				let perc2Text = ""
+				if (current / total === 1) {
+					let time = new Date() - startTime
+					perc2Text += ` (in ${time / 1000}s)`
+				}
+
+				document.getElementById(id).innerHTML = perc2 + perc2Text
+				document.getElementById(id + "pb").style.width = perc2
+			}
+		}
+
+		function addTimers() {
+			let timerFrame = document.createElement("div")
+			timerFrame.setAttribute("class", "debugTimerFrame")
+			timerFrame.setAttribute("style", "position:fixed;top:0;right:0;background:rgba(0,0,0,0.5);width:320px;z-index:1;padding:8px;border-radius:0 0 0 8px;")
+			timerFrame.appendChild(document.createTextNode("Item Calc+Render Time: "))
+			let itemTimeSpan = document.createElement("span")
+			itemTimeSpan.setAttribute("id", "itemRenderTime")
+			timerFrame.appendChild(itemTimeSpan)
+			timerFrame.appendChild(document.createElement("br"))
+			timerFrame.appendChild(document.createTextNode("Map Calc+Render Time: "))
+			let mapTimeSpan = document.createElement("span")
+			mapTimeSpan.setAttribute("id", "mapRenderTime")
+			timerFrame.appendChild(mapTimeSpan)
+			document.body.appendChild(timerFrame)
+		}
+
+		function showError(msg) {
+			let errorBody = document.createElement("div")
+			errorBody.setAttribute("style", "white-space:pre;font-family:monospace")
+			document.body.appendChild(document.createElement("br"))
+			document.body.appendChild(document.createElement("br"))
+			errorBody.appendChild(document.createTextNode(msg))
+			document.body.appendChild(errorBody)
+		}
+
+		function updateTimers(timers) {
+			if (timers.items) document.getElementById("itemRenderTime").innerHTML = `${timers.items.calc} + ${timers.items.render}ms`
+			if (timers.maps) document.getElementById("mapRenderTime").innerHTML = `${timers.maps.calc} + ${timers.maps.render}ms`
+		}
+
+		try {
+			await loadPack("/p/OoA.zip", ProgressBarUpdater("dl"), ProgressBarUpdater("ex2"), ProgressBarUpdater("conv"), updateTimers);
+		} catch (e) {
+			showError(e)
+		}
+
+		addTimers()
+
+		let mainProgressBars = document.getElementById("mainProgressBars")
+		setTimeout(() => {removeAllChildren(mainProgressBars); document.body.removeChild(mainProgressBars)}, 4000)
 
 		import { testMaps, testImages, testItems } from "/packloader/kh/testStuff.js";
 		testMaps(100)

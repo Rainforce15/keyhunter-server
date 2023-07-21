@@ -1,53 +1,31 @@
 import JSZip from "/lib/jszip.min.js"
 import {bytesToBase64} from "/lib/base64.js"
 import * as util from "/packloader/kh/util.js"
-import { avgTimeAction, setTimer, getTimer } from "/packloader/kh/timer.js"
+import {avgTimeAction} from "/packloader/kh/timer.js"
 import * as maps from "/packloader/kh/maps.js"
 import * as mapsRender from "/packloader/kh/mapsRender.js"
 import * as items from "/packloader/kh/items.js"
 import * as itemsRender from "/packloader/kh/itemsRender.js"
 import * as pathing from "/packloader/kh/pathing.js"
 
-let body, dl, dlpb, ex2, ex2pb, conv, convpb, mainProgressBars
-
-
 export let extracted
 
-function setupDomRefs() {
-	body = document.body
-	dl = document.getElementById("dl")
-	dlpb = document.getElementById("dlpb")
-	ex2 = document.getElementById("ex2")
-	ex2pb = document.getElementById("ex2pb")
-	conv = document.getElementById("conv")
-	convpb = document.getElementById("convpb")
-	mainProgressBars = document.getElementById("mainProgressBars")
-}
+function defaultProgress(currentSizeExtracted, fileSizeTotal, startTime) {}
 
-export async function loadPack(url) {
-	setupDomRefs()
-
+export async function loadPack(url, downloadProgress, extractedProgress, conversionProgress, timerUpdate) {
 	console.log(`loading from ${url}`)
 
-	let zipFile = await download(url)
-	extracted = await unpack(zipFile)
-	preConversion()
-	startPack()
+	let zipFile = await download(url, downloadProgress)
+	extracted = await unpack(zipFile, extractedProgress)
+	await preConversion(conversionProgress)
+	startPack(timerUpdate)
 }
 
-function download(url) {return new Promise((resolve, reject) => {
+function download(url, progressFeedback = defaultProgress) {return new Promise((resolve, reject) => {
+	let startTime = Date.now()
 	let request = new XMLHttpRequest()
 	request.responseType = "blob"
-	request.addEventListener("progress", e => {
-		let perc = util.formatPerc(e.loaded, e.total)
-		console.log(`${perc} downloaded`)
-		let percText = ""
-		if (e.loaded/e.total === 1) {
-			percText += ` (in ${getTimer("dl") / 1000}s)`
-		}
-		dl.innerHTML = perc + percText
-		dlpb.style.width = perc
-	})
+	request.addEventListener("progress", e => progressFeedback(e.loaded, e.total, startTime))
 	request.addEventListener("readystatechange", async _ => {
 		if (request.readyState === 2 && request.status === 200) {
 			util.log("started DL...")
@@ -65,11 +43,10 @@ function download(url) {return new Promise((resolve, reject) => {
 		reject(e)
 	})
 	request.open("get", url)
-	setTimer("dl")
 	request.send()
 })}
 
-async function unpack(blob) {
+async function unpack(blob, progressFeedback = defaultProgress) {
 	let zip = new JSZip()
 	let zipData = await zip.loadAsync(blob)
 	let extracted = {}
@@ -94,13 +71,13 @@ async function unpack(blob) {
 		}
 	}
 	util.log(`total size: ${fileSizeTotal}`)
-	setTimer("ex")
+	let startTime = Date.now()
 
 	await Promise.all(fileNames.map(async fileName => {
 		let data = await zipData.file(fileName).async("uint8array")
 		extracted[fileName] = data
 		currentSizeExtracted += data.length
-		updateProgressBar(currentSizeExtracted,fileSizeTotal)
+		progressFeedback(currentSizeExtracted, fileSizeTotal, startTime)
 	}))
 
 	util.log("done extracting...")
@@ -108,21 +85,14 @@ async function unpack(blob) {
 
 	return extracted
 }
-function updateProgressBar(currentSizeExtracted,fileSizeTotal) {
-	let perc2 = util.formatPerc(currentSizeExtracted, fileSizeTotal)
-	let perc2Text = ""
-	if (currentSizeExtracted / fileSizeTotal === 1) {
-		perc2Text += ` (in ${getTimer("ex") / 1000}s)`
-	}
-	ex2.innerHTML = perc2 + perc2Text
-	ex2pb.style.width = perc2
-}
-function preConversion() {
+
+async function preConversion(progressFeedback = defaultProgress) {
 	let JSONFile
 	let JSONerror
 	let maxEx = Object.keys(extracted).length
 	let curEx = 0
-	setTimer("conv")
+	let startTime = Date.now()
+
 	for (let key in extracted) {
 		let fileData = extracted[key]
 		if (key.endsWith(".png") && fileData[1] === 0x50 && fileData[2] === 0x4E && fileData[3] === 0x47) {
@@ -158,26 +128,12 @@ function preConversion() {
 				JSONerror = e
 			}
 		}
-		let perc3 = util.formatPerc(++curEx, maxEx)
-		let perc3Text = ""
-		if (curEx / maxEx === 1) {
-			perc3Text += ` (in ${getTimer("conv") / 1000}s)`
-		}
-		conv.innerHTML = perc3 + perc3Text
-		convpb.style.width = perc3
-
+		progressFeedback(++curEx, maxEx, startTime)
 	}
 	if (JSONerror) {
-		let errorBody = document.createElement("div")
-		errorBody.setAttribute("style", "white-space:pre;font-family:monospace")
-		body.appendChild(document.createElement("br"))
-		body.appendChild(document.createElement("br"))
-		errorBody.appendChild(document.createTextNode(`JSON parsing failed for ${JSONFile}:\n\n`))
-		errorBody.appendChild(document.createTextNode(JSONerror.message))
-		body.appendChild(errorBody)
+		throw `JSON parsing failed for ${JSONFile}:\n\n${JSONerror.message}`
 	} else {
 		util.log("done preconversion, starting pack...")
-		//console.log(extracted)
 	}
 }
 
@@ -251,37 +207,23 @@ showLines = document.createElement("style")
 showLines.innerHTML = ".map_line {visibility:hidden}"
 document.head.appendChild(showLines)
 
-function startPack() {
-	setTimeout(() => {util.removeAllChildren(mainProgressBars); body.removeChild(mainProgressBars)}, 4000)
+function startPack(timerUpdate = (timers) => {}) {
 	loadConfig()
-	if (body) {
-		let timerFrame = document.createElement("div")
-		timerFrame.setAttribute("class", "debugTimerFrame")
-		timerFrame.setAttribute("style", "position:fixed;top:0;right:0;background:rgba(0,0,0,0.5);width:320px;z-index:1;padding:8px;border-radius:0 0 0 8px;")
-		timerFrame.appendChild(document.createTextNode("Item Calc+Render Time: "))
-		let itemTimeSpan = document.createElement("span")
-		itemTimeSpan.setAttribute("id", "itemRenderTime")
-		timerFrame.appendChild(itemTimeSpan)
-		timerFrame.appendChild(document.createElement("br"))
-		timerFrame.appendChild(document.createTextNode("Map Calc+Render Time: "))
-		let mapTimeSpan = document.createElement("span")
-		mapTimeSpan.setAttribute("id", "mapRenderTime")
-		timerFrame.appendChild(mapTimeSpan)
-		body.appendChild(timerFrame)
-	}
 
 	items.load(groupdistance)
 	maps.load()
 
 	setInterval(()=>{
 		if(!updateLoopInterrupt) {
-			let avgItemCalcTime = avgTimeAction(items.updateAllItemData, "itemCalcTimes")
-			let avgItemRenderTime = avgTimeAction(itemsRender.updateAllItemRender, "itemRenderTimes")
-			document.getElementById("itemRenderTime").innerHTML = `${avgItemCalcTime} + ${avgItemRenderTime}ms`
-
-			let avgMapCalcTime = avgTimeAction(maps.updateAllMapData, "mapCalcTimes")
-			let avgMapRenderTime = avgTimeAction(mapsRender.updateAllMapRender, "mapRenderTimes")
-			document.getElementById("mapRenderTime").innerHTML = `${avgMapCalcTime} + ${avgMapRenderTime}ms`
+			timerUpdate({
+				items: {
+					calc: avgTimeAction(items.updateAllItemData, "itemCalcTimes"),
+					render: avgTimeAction(itemsRender.updateAllItemRender, "itemRenderTimes")},
+				maps: {
+					calc: avgTimeAction(maps.updateAllMapData, "mapCalcTimes"),
+					render: avgTimeAction(mapsRender.updateAllMapRender, "mapRenderTimes")
+				}
+			})
 		}
 	}, 500)
 }
