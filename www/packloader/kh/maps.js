@@ -40,7 +40,7 @@ export function load() {
 		}
 	}
 
-	pathing.checkPaths(elements)
+	pathing.setupEntryPaths(elements)
 	pathing.pathMaps(elements)
 	let lostLocs = []
 	for (let mapName in elements) {

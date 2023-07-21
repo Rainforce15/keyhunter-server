@@ -37,77 +37,81 @@ export function applyTemplates(obj, templateSource, type) {
 				}
 			}
 			if (type === "item") {
-				// --stages--
-				//generate stages based on template
-				if(!entry.stages && template.stages && entry.mem) {
-					let oldMem = entry.mem
-					delete entry.mem
-					entry.stages = JSON.parse(JSON.stringify(template.stages))
-					for (let stage of entry.stages) {
-						for (let memType in stage.mem) {
-							for (let i = 0; i < stage.mem[memType].length; i++) {
-								let flag = stage.mem[memType][i]
-								if (oldMem?.[memType]?.[i]?.[0]) flag[0] = oldMem[memType][i][0]
-								if (oldMem?.[memType]?.[i]?.[1]) flag[1] = oldMem[memType][i][1]
-							}
-						}
-					}
-				}
-				//fill stages with template/mem
-				if (entry.stages) {
-					for (let stageIndex = 0; stageIndex < entry.stages.length; stageIndex++) {
-						let stage = entry.stages[stageIndex]
+				applyItemMemTemplate(entry, templateSource, templateName)
+			}
+		}
+	}
+}
+function applyTemplateToFlag(template, flag) {
+	if (!flag[0] && template?.[0]) {
+		flag[0] = template[0]
+	}
+	if (!flag[1] && template?.[1]) {
+		flag[1] = template[1]
+	}
+}
 
-						if (stage.mem) {
-							for (let memType in stage.mem) {
-								for (let flagIndex = 0; flagIndex < stage.mem[memType].length; flagIndex++) {
-									let flag = stage.mem[memType][flagIndex]
-									if (entry.mem && entry.mem[memType]) {
-										if (!flag[0] && entry.mem?.[memType]?.[flagIndex]?.[0]) {
-											flag[0] = entry.mem[memType][flagIndex][0]
-										}
-										if (!flag[1] && entry.mem?.[memType]?.[flagIndex]?.[1]) {
-											flag[1] = entry.mem[memType][flagIndex][1]
-										}
-									}
-								}
-								if (entry.mem && entry.mem[memType].length > stage.mem[memType].length) {
-									for (let flagIndex = stage.mem[memType].length; flagIndex < entry.mem[memType].length; flagIndex++) {
-										stage.mem[memType].push(entry.mem[memType][flagIndex])
-									}
-								}
-							}
-							if (entry.mem) {
-								for (let memType in entry.mem) {
-									if (!stage.mem[memType]) stage.mem[memType] = entry.mem[memType]
-								}
-							}
-						}
-					}
-				}
+function generateStagesFromTemplate(entry, template) {
+	let entryMem = entry["mem"]
+	delete entry["mem"]
+	entry.stages = JSON.parse(JSON.stringify(template.stages))
+	for (let stage of entry.stages) {
+		let stageMem = stage["mem"]
+		for (let memType in stageMem) {
+			for (let i = 0; i < stageMem[memType].length; i++) {
+				applyTemplateToFlag(entryMem?.[memType]?.[i], stageMem[memType][i])
+			}
+		}
+	}
+}
 
-				// --regular mem--
-				for (let memKey of ["mem", "countMem", "forceMem"]) {
-					for (let memType in entry[memKey]) {
-						for (let flagIndex = 0; flagIndex < entry[memKey][memType].length; flagIndex++) {
-							let flag = entry[memKey][memType][flagIndex]
-							if (entry.template) {
-								for (let innerTemplateName of entry.template) {
-									let innerTemplate = templateSource[innerTemplateName]
-									if (innerTemplate) {
-										if (!flag[0] && innerTemplate[memKey]?.[memType]?.[flagIndex]?.[0]) {
-											flag[0] = innerTemplate[memKey][memType][flagIndex][0]
-										}
-										if (!flag[1] && innerTemplate[memKey]?.[memType]?.[flagIndex]?.[1]) {
-											flag[1] = innerTemplate[memKey][memType][flagIndex][1]
-										}
-									}
-								}
-							}
-						}
-					}
+function fillStagesFromTemplate(entry) {
+	for (let stageIndex = 0; stageIndex < entry.stages.length; stageIndex++) {
+		let entryMem = entry["mem"] || []
+		let stageMem = entry.stages[stageIndex]["mem"] || []
+
+		for (let memType in stageMem) {
+			let entryMemType = entryMem[memType]
+			let stageMemType = stageMem[memType]
+			for (let i = 0; i < stageMemType.length; i++) {
+				applyTemplateToFlag(entryMemType?.[i], stageMemType[i])
+			}
+			if (entryMemType?.length > stageMemType.length) {
+				for (let i = stageMemType.length; i < entryMemType.length; i++) {
+					stageMemType.push(entryMemType[i])
 				}
 			}
+		}
+
+		for (let memType in entryMem) {
+			stageMem[memType] ||= entryMem[memType]
+		}
+	}
+}
+
+function applyMemTemplate(entry, templateSource, memKey, memType) {
+	let entryMemTypeData = entry[memKey][memType]
+	for (let i = 0; i < entryMemTypeData.length; i++) {
+		for (let innerTemplateName of entry.template || []) {
+			applyTemplateToFlag(templateSource[innerTemplateName]?.[memKey]?.[memType]?.[i], entryMemTypeData[i])
+		}
+	}
+}
+
+function applyItemMemTemplate(entry, templateSource, templateName) {
+	let template = templateSource[templateName]
+
+	if(!entry.stages && template.stages && entry["mem"]) {
+		generateStagesFromTemplate(entry, template)
+	}
+	if (entry.stages) {
+		fillStagesFromTemplate(entry)
+	}
+
+	// regular mem
+	for (let memKey of ["mem", "countMem", "forceMem"]) {
+		for (let memType in entry[memKey]) {
+			applyMemTemplate(entry, templateSource, memKey, memType)
 		}
 	}
 }

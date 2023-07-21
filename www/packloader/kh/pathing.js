@@ -35,7 +35,8 @@ export function pathMaps(elements) {
 		let loc = entryPoint[1]
 		if (_debug) console.log("starting from: ", loc.basename)
 		pathCount = 0
-		pathConnections(loc)
+		if (_debug) pathConnectionsDebug(loc)
+		else pathConnections(loc)
 	}
 	//round up the remainders
 	for (let mapName in elements) {
@@ -48,6 +49,7 @@ export function pathMaps(elements) {
 	}
 	_debug = false
 }
+
 function isEntryPoint(loc) {
 	let locEntryPoint = loc["entryPoint"]
 	if (locEntryPoint) {
@@ -63,7 +65,41 @@ function isEntryPoint(loc) {
 	}
 	return false
 }
+
 function pathConnections(loc, prev, oneWay) {
+	let oneWayPropagation = false
+
+	if (loc.pathingStatus && (loc.pathingStatus === 1 || loc.pathingStatus === 2 && prev.pathingStatus !== 1)) {
+		return loc.pathingStatus === 1
+	}
+	if (isEntryPoint(loc)) loc.pathingStatus = 1
+	else if (prev && !oneWay) {
+		let prevStatus = loc.pathingStatus
+		loc.pathingStatus = prev.pathingStatus
+		if (prevStatus === 2 && loc.pathingStatus === 1) oneWayPropagation = true
+	} else if (oneWay) {
+		loc.pathingStatus = 2
+	}
+
+	checkTwoWayConnections(loc, indent)
+	oneWayPropagation = checkOneWayConnections(loc, oneWayPropagation, indent)
+
+	if (oneWayPropagation) {
+		let locConnectsTo = loc["connectsTo"]
+		if (locConnectsTo) {
+			pathAllSub(locConnectsTo, loc, indent)
+		}
+		let locConnectsOneWayTo = loc["connectsOneWayTo"]
+		if (locConnectsOneWayTo) {
+			pathAllSub(locConnectsOneWayTo, loc, indent)
+		}
+	}
+
+	return loc.pathingStatus === 1
+}
+
+
+function pathConnectionsDebug(loc, prev, oneWay) {
 	let pathDebugName
 	let originalStatus
 	let oneWayPropagation = false
@@ -93,19 +129,19 @@ function pathConnections(loc, prev, oneWay) {
 		if (_debug) console.log(`${indent}[${pathDebugName}]  early set (one way) - pathingStatus: `, loc.pathingStatus, `[${++pathCount}]`)
 	}
 
-	checkTwoWayConnections(loc, indent)
-	oneWayPropagation = checkOneWayConnections(loc, oneWayPropagation, indent)
+	checkTwoWayConnectionsDebug(loc, indent)
+	oneWayPropagation = checkOneWayConnectionsDebug(loc, oneWayPropagation, indent)
 
 	if (oneWayPropagation) {
 		let locConnectsTo = loc["connectsTo"]
 		if (locConnectsTo) {
 			if (_debug) console.log(`${indent}  propagate two-way connections due to one-way changes: ${Object.keys(locConnectsTo).length}`, `[${++pathCount}]`)
-			pathAllSub(locConnectsTo, loc, indent)
+			pathAllSubDebug(locConnectsTo, loc, indent)
 		}
 		let locConnectsOneWayTo = loc["connectsOneWayTo"]
 		if (locConnectsOneWayTo) {
 			if (_debug) console.log(`${indent}  propagate one-way connections due to one-way changes: ${Object.keys(locConnectsOneWayTo).length}`, `[${++pathCount}]`)
-			pathAllSub(locConnectsOneWayTo, loc, indent)
+			pathAllSubDebug(locConnectsOneWayTo, loc, indent)
 		}
 	}
 	if (_debug) {
@@ -114,7 +150,21 @@ function pathConnections(loc, prev, oneWay) {
 	}
 	return loc.pathingStatus === 1
 }
+
 function checkTwoWayConnections(loc, indent) {
+	let locConnectsTo = loc["connectsTo"]
+	for (let connectionName in locConnectsTo || []) {
+		let connectionData = locConnectsTo[connectionName]
+		if (connectionData.ref) {
+			basicPathing(connectionData, loc)
+		} else if (!connectionData._broken) {
+			connectionData._broken = true
+			console.warn(`broken ref: from ${loc.parentMapName}::${loc.basename} to ${connectionName.indexOf("::") < 0 ? loc.parentMapName + "::" : ""}${connectionName}`)
+		}
+	}
+}
+
+function checkTwoWayConnectionsDebug(loc, indent) {
 	let conCount = 0
 	let locConnectsTo = loc["connectsTo"]
 	if (_debug && locConnectsTo) console.log(`${indent}  two-way connections: ${Object.keys(locConnectsTo).length}`, `[${++pathCount}]`)
@@ -122,17 +172,45 @@ function checkTwoWayConnections(loc, indent) {
 		let connectionData = locConnectsTo[connectionName]
 		if (connectionData.ref) {
 			if (_debug) console.log(`${indent}  ${++conCount}/${Object.keys(locConnectsTo).length} ${connectionData.ref.parentMapName}::${connectionData.ref.basename}`, `[${++pathCount}]`)
-			basicPathing(connectionData, loc)
-		} else {
-			if (!connectionData._broken) {
-				connectionData._broken = true
-				console.warn(`broken ref: from ${loc.parentMapName}::${loc.basename} to ${connectionName.indexOf("::") < 0 ? loc.parentMapName + "::" : ""}${connectionName}`)
-
-			}
+			basicPathingDebug(connectionData, loc)
+		} else if (!connectionData._broken) {
+			connectionData._broken = true
+			console.warn(`broken ref: from ${loc.parentMapName}::${loc.basename} to ${connectionName.indexOf("::") < 0 ? loc.parentMapName + "::" : ""}${connectionName}`)
 		}
 	}
 }
+
 function checkOneWayConnections(loc, oneWayPropagation, indent) {
+	let conCount = 0
+	let locConnectsOneWayTo = loc["connectsOneWayTo"]
+	for (let connectionName in locConnectsOneWayTo || []) {
+		let connectionData = locConnectsOneWayTo[connectionName]
+		if (connectionData.ref) {
+			if (connectionData.ref.pathingStatus === 1) {
+				let prevStatus = loc.pathingStatus
+				loc.pathingStatus = 1
+				if (prevStatus === 2 && loc.pathingStatus === 1) oneWayPropagation = true
+			}
+			if (connectionData.ref.pathingStatus) continue
+			if (connectionData.length === 0) {
+				oneWayPropagation = checkOneWayLoop(connectionData.ref, loc, indent)
+			} else {
+				for (let factors of connectionData) {
+					if (items.evaluateAnd(factors, `connectsOneWayTo ${connectionName} of ${loc.basename}`)) {
+						oneWayPropagation = checkOneWayLoop(connectionData.ref, loc, indent)
+						break
+					}
+				}
+			}
+		} else if (!connectionData._broken) {
+			connectionData._broken = true
+			console.warn(`broken ref: from ${loc.parentMapName}::${loc.basename} to ${connectionName.indexOf("::") < 0 ? loc.parentMapName + "::" : ""}${connectionName}`)
+		}
+	}
+	return oneWayPropagation
+}
+
+function checkOneWayConnectionsDebug(loc, oneWayPropagation, indent) {
 	let conCount = 0
 	let locConnectsOneWayTo = loc["connectsOneWayTo"]
 	if (_debug && locConnectsOneWayTo) console.log(`${indent}  one-way connections: ${Object.keys(locConnectsOneWayTo).length}`, `[${++pathCount}]`)
@@ -148,25 +226,33 @@ function checkOneWayConnections(loc, oneWayPropagation, indent) {
 			}
 			if (connectionData.ref.pathingStatus) continue
 			if (connectionData.length === 0) {
-				oneWayPropagation = checkOneWayLoop(connectionData.ref, loc, indent)
+				oneWayPropagation = checkOneWayLoopDebug(connectionData.ref, loc, indent)
 			} else {
 				for (let factors of connectionData) {
 					if (items.evaluateAnd(factors, `connectsOneWayTo ${connectionName} of ${loc.basename}`)) {
-						oneWayPropagation = checkOneWayLoop(connectionData.ref, loc, indent)
+						oneWayPropagation = checkOneWayLoopDebug(connectionData.ref, loc, indent)
 						break
 					}
 				}
 			}
-		} else {
-			if (!connectionData._broken) {
-				connectionData._broken = true
-				console.warn(`broken ref: from ${loc.parentMapName}::${loc.basename} to ${connectionName.indexOf("::") < 0 ? loc.parentMapName + "::" : ""}${connectionName}`)
-			}
+		} else if (!connectionData._broken) {
+			connectionData._broken = true
+			console.warn(`broken ref: from ${loc.parentMapName}::${loc.basename} to ${connectionName.indexOf("::") < 0 ? loc.parentMapName + "::" : ""}${connectionName}`)
 		}
 	}
 	return oneWayPropagation
 }
-function checkOneWayLoop(connections, loc, indent) {
+
+function checkOneWayLoop(connections, loc) {
+	if (pathConnections(connections, loc, true)) {
+		let prevStatus = loc.pathingStatus
+		loc.pathingStatus = 1
+		if (prevStatus === 2 && loc.pathingStatus === 1) return true
+	}
+	return false
+}
+
+function checkOneWayLoopDebug(connections, loc, indent) {
 	if (pathConnections(connections, loc, true)) {
 		let prevStatus = loc.pathingStatus
 		loc.pathingStatus = 1
@@ -175,13 +261,23 @@ function checkOneWayLoop(connections, loc, indent) {
 	}
 	return false
 }
-function pathAllSub(connections, loc, indent) {
+
+function pathAllSub(connections, loc) {
+	for (let connectionName in connections) {
+		let connectionData = connections[connectionName]
+		if (connectionData.ref) {
+			basicPathing(connectionData, loc)
+		}
+	}
+}
+
+function pathAllSubDebug(connections, loc, indent) {
 	let conCount = 0
 	for (let connectionName in connections) {
 		let connectionData = connections[connectionName]
 		if (connectionData.ref) {
 			if (_debug) console.log(`${indent}  ${++conCount}/${Object.keys(connections).length} ${connectionData.ref.parentMapName}::${connectionData.ref.basename}`, `[${++pathCount}]`)
-			basicPathing(connectionData, loc)
+			basicPathingDebug(connectionData, loc)
 		}
 	}
 }
@@ -198,12 +294,27 @@ function basicPathing(connectionData, loc) {
 				break
 			}
 		}
+	}
+}
+
+function basicPathingDebug(connectionData, loc) {
+	if (connectionData.length === 0) {
+		pathConnections(connectionData.ref, loc)
+	} else {
+		let factorsFound = false
+		for (let factors of connectionData) {
+			if (items.evaluateAnd(factors, `connectsTo ${connectionData.basename} of ${loc.basename}`)) {
+				pathConnections(connectionData.ref, loc)
+				factorsFound = true
+				break
+			}
+		}
 		if (_debug && !factorsFound) console.log(`${indent}   no valid factors.`, `[${++pathCount}]`)
 	}
 }
 
-export function checkPaths(elements) {
-	console.log("Pathing Check ...")
+export function setupEntryPaths(elements) {
+	console.log("Entry Pathing Check ...")
 	let entryPoints = []
 	console.log("clearing connectedToEntryPoint")
 	for (let mapName in elements) {
@@ -218,20 +329,20 @@ export function checkPaths(elements) {
 	console.log("validating...")
 	for (let entryPoint of entryPoints) {
 		let loc = entryPoint[1]
-		checkConnections(loc)
+		propagateEntryConnection(loc)
 	}
 }
 
-function checkConnections(loc) {
+function propagateEntryConnectionForAll(connectionList) {
+	for (let connectionName in connectionList) {
+		if (connectionList[connectionName].ref) propagateEntryConnection(connectionList[connectionName].ref)
+	}
+}
+
+function propagateEntryConnection(loc) {
 	if (!loc.connectedToEntryPoint) {
 		loc.connectedToEntryPoint = true
-		let locConnectsTo = loc["connectsTo"]
-		for (let connectionName in locConnectsTo) {
-			if (locConnectsTo[connectionName].ref) checkConnections(locConnectsTo[connectionName].ref)
-		}
-		let locConnectsOneWayTo = loc["connectsOneWayTo"]
-		for (let connectionName in locConnectsOneWayTo) {
-			if (locConnectsOneWayTo[connectionName].ref) checkConnections(locConnectsOneWayTo[connectionName].ref)
-		}
+		propagateEntryConnectionForAll(loc["connectsTo"])
+		propagateEntryConnectionForAll(loc["connectsOneWayTo"])
 	}
 }
