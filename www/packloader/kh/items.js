@@ -88,7 +88,7 @@ function initDomRefs() {
 	}
 }
 
-export function load(groupDistance) {
+export function init(conf) {
 	elements = extracted["items.yaml"] || extracted["items.json"]
 	if (!elements) {
 		console.error("no item.yaml/json definition.")
@@ -101,12 +101,14 @@ export function load(groupDistance) {
 	}
 	base.applyBaseRendername(elements)
 	base.applyTemplates(elements)
-	parseItemMemStringsAndIndex(groupDistance)
+	parseItemMemStringsAndIndex(conf["groupdistance"]|| 32)
 	initDomRefs()
 	memory.sendAndReceiveState()
 	setInterval(memory.sendAndReceiveState, 1000)
 	wsListeners.push(memory.addressHandler)
 	console.log("items done")
+
+	return elements
 }
 
 export function updateAllItemData() {

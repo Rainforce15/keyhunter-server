@@ -5,7 +5,7 @@ import * as items from "./items.js";
 
 export let elements
 
-export function load() {
+export function init() {
 	elements = extracted["maps.yaml"] || extracted["maps.json"]
 	console.log("loading maps...")
 	console.log(elements)
@@ -57,6 +57,8 @@ export function load() {
 
 	console.log(elements)
 	console.log("maps done")
+
+	return elements
 }
 
 function fixAndLinkBackAndForth(loc, attribute, map, mapName, backAttribute) {

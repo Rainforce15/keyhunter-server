@@ -18,7 +18,12 @@ export async function loadPack(url, downloadProgress, extractedProgress, convers
 	let zipFile = await download(url, downloadProgress)
 	extracted = await unpack(zipFile, extractedProgress)
 	await preConversion(conversionProgress)
-	startPack(timerUpdate)
+
+	let conf = loadConfig()
+	let itemData = items.init(conf)
+	let mapData = maps.init()
+
+	startPack(itemData, mapData, timerUpdate)
 }
 
 function download(url, progressFeedback = defaultProgress) {return new Promise((resolve, reject) => {
@@ -207,12 +212,7 @@ showLines = document.createElement("style")
 showLines.innerHTML = ".map_line {visibility:hidden}"
 document.head.appendChild(showLines)
 
-function startPack(timerUpdate = (timers) => {}) {
-	loadConfig()
-
-	items.load(groupdistance)
-	maps.load()
-
+function startPack(itemData, mapData, timerUpdate = (timers) => {}) {
 	setInterval(()=>{
 		if(!updateLoopInterrupt) {
 			timerUpdate({
@@ -228,11 +228,8 @@ function startPack(timerUpdate = (timers) => {}) {
 	}, 500)
 }
 
-let groupdistance = 32
-
 function loadConfig() {
-	let config = extracted["config.yaml"] || extracted["config.json"]
-	if (config["groupdistance"]) groupdistance = config["groupdistance"]
+	return extracted["config.yaml"] || extracted["config.json"]
 }
 
 
