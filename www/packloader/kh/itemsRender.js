@@ -30,11 +30,8 @@ function setImgForStage(item, img) {
 		imgData = item.stages && item.stages[item.curStage - 1]["img"] || item["img"]
 		img.setAttribute("style", imgBaseStyle/*+"border: 2px solid lightgray;"*/)
 	}
-	if (extracted["img/"+imgData]) {
-		img.setAttribute("src", extracted["img/"+imgData])
-	} else {
-		img.setAttribute("src", "/img/imgerror.png")
-	}
+
+	img.setAttribute("src", extracted["img/"+imgData] || "/img/imgerror.png")
 }
 
 function setItemClickHandler(node, item) {

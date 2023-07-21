@@ -1,9 +1,11 @@
+import {extracted} from "./packLoader.js";
 import * as items from "./items.js"
 import * as itemsRender from "/packloader/kh/itemsRender.js"
 import * as maps from "./maps.js"
 import * as mapsRender from "./mapsRender.js"
 
 export function testItems(t) {
+	console.log("testing items...")
 	setTimeout(() => {
 		let testDiv = document.createElement("div")
 		addTestHeader("Item Test", testDiv, document.body)
@@ -38,6 +40,8 @@ export function testItems(t) {
 }
 
 export function testMaps(t) {
+	console.log("testing maps...")
+
 	setTimeout(() => {
 		let testDiv = document.createElement("div")
 		addTestHeader("Map Test", testDiv, document.body)
@@ -55,7 +59,9 @@ export function testMaps(t) {
 	}, t)
 }
 
-export function testImages(t, extracted) {
+export function testImages(t) {
+	console.log("testing images...")
+
 	setTimeout(() => {
 		let testImagesDiv = document.createElement("div")
 		addTestHeader("Image Test", testImagesDiv, document.body)

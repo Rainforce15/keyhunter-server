@@ -106,7 +106,7 @@ export function load(groupDistance) {
 	memory.sendAndReceiveState()
 	setInterval(memory.sendAndReceiveState, 1000)
 	wsListeners.push(memory.addressHandler)
-	console.log("done")
+	console.log("items done")
 }
 
 export function updateAllItemData() {

@@ -1,5 +1,5 @@
 import JSZip from "/lib/jszip.min.js"
-import { bytesToBase64 } from "/lib/base64.js"
+import {bytesToBase64} from "/lib/base64.js"
 import * as util from "/packloader/kh/util.js"
 import { avgTimeAction, setTimer, getTimer } from "/packloader/kh/timer.js"
 import * as maps from "/packloader/kh/maps.js"
@@ -12,11 +12,6 @@ let body, dl, dlpb, ex2, ex2pb, conv, convpb, mainProgressBars
 
 
 export let extracted
-let filesMeta
-let currentExtracted
-let filesTotal
-let currentSizeExtracted
-let fileSizeTotal
 
 function setupDomRefs() {
 	body = document.body
@@ -29,11 +24,18 @@ function setupDomRefs() {
 	mainProgressBars = document.getElementById("mainProgressBars")
 }
 
-export function loadPack(url) {
+export async function loadPack(url) {
 	setupDomRefs()
 
 	console.log(`loading from ${url}`)
-	extracted = {}
+
+	let zipFile = await download(url)
+	extracted = await unpack(zipFile)
+	preConversion()
+	startPack()
+}
+
+function download(url) {return new Promise((resolve, reject) => {
 	let request = new XMLHttpRequest()
 	request.responseType = "blob"
 	request.addEventListener("progress", e => {
@@ -46,7 +48,7 @@ export function loadPack(url) {
 		dl.innerHTML = perc + percText
 		dlpb.style.width = perc
 	})
-	request.addEventListener("readystatechange", _ => {
+	request.addEventListener("readystatechange", async _ => {
 		if (request.readyState === 2 && request.status === 200) {
 			util.log("started DL...")
 		} else if (request.readyState === 3) {
@@ -55,55 +57,58 @@ export function loadPack(url) {
 			util.log("DL finished!")
 			util.log("content:")
 			util.log(request.response)
-			unpack(request.response)
+			resolve(request.response)
 		}
+	})
+	request.addEventListener("error", e => {
+		console.error(e)
+		reject(e)
 	})
 	request.open("get", url)
 	setTimer("dl")
 	request.send()
-}
+})}
 
-function unpack(blob) {
+async function unpack(blob) {
 	let zip = new JSZip()
-	zip.loadAsync(blob).then(zipData => {
-		util.log("zip loaded, data:")
-		util.log(zipData)
-		filesMeta = zipData.files
-		filesTotal = Object.keys(filesMeta).length
-		currentExtracted = 0
+	let zipData = await zip.loadAsync(blob)
+	let extracted = {}
 
-		fileSizeTotal = 0
-		currentSizeExtracted = 0
-		for (let file in filesMeta) {
-			if (filesMeta[file]._data && filesMeta[file]._data.uncompressedSize) {
-				fileSizeTotal += filesMeta[file]._data.uncompressedSize
-			}
+	util.log("zip loaded, data:")
+	util.log(zipData)
+	let filesMeta = {}
+	let allFiles = zipData.files
+	for (let fileName in allFiles) {
+		let curFile = allFiles[fileName]
+		if (!curFile.dir) filesMeta[fileName] = curFile
+	}
+	console.log(filesMeta)
+	let fileNames = Object.keys(filesMeta)
+	console.log(fileNames)
+
+	let fileSizeTotal = 0
+	let currentSizeExtracted = 0
+	for (let file in filesMeta) {
+		if (filesMeta[file]._data && filesMeta[file]._data.uncompressedSize) {
+			fileSizeTotal += filesMeta[file]._data.uncompressedSize
 		}
-		util.log(`total size: ${fileSizeTotal}`)
-		setTimer("ex")
-		for (let file in filesMeta) {
-			if (!filesMeta[file].dir) {
-				(f =>
-					zipData.file(f).async("uint8array").then(data => {
-						extracted[f] = data
-						currentSizeExtracted += data.length
-						currentExtracted++
-						checkExtractDone()
-					}))(file)
-			} else {
-				currentExtracted++
-				checkExtractDone()
-			}
-		}
-	})
+	}
+	util.log(`total size: ${fileSizeTotal}`)
+	setTimer("ex")
+
+	await Promise.all(fileNames.map(async fileName => {
+		let data = await zipData.file(fileName).async("uint8array")
+		extracted[fileName] = data
+		currentSizeExtracted += data.length
+		updateProgressBar(currentSizeExtracted,fileSizeTotal)
+	}))
+
+	util.log("done extracting...")
+	console.log("done extracting")
+
+	return extracted
 }
-function checkExtractDone() {
-	/*let perc = util.formatPerc(currentExtracted, filesTotal)
-	console.log(perc + " extracted")
-	ex.innerHTML = perc
-	expb.style.width = perc;*/
-
-	//console.log(perc2 + " size extracted")
+function updateProgressBar(currentSizeExtracted,fileSizeTotal) {
 	let perc2 = util.formatPerc(currentSizeExtracted, fileSizeTotal)
 	let perc2Text = ""
 	if (currentSizeExtracted / fileSizeTotal === 1) {
@@ -111,11 +116,6 @@ function checkExtractDone() {
 	}
 	ex2.innerHTML = perc2 + perc2Text
 	ex2pb.style.width = perc2
-
-	if (currentExtracted === filesTotal) {
-		util.log("done extracting...")
-		preConversion()
-	}
 }
 function preConversion() {
 	let JSONFile
@@ -178,7 +178,6 @@ function preConversion() {
 	} else {
 		util.log("done preconversion, starting pack...")
 		//console.log(extracted)
-		startPack()
 	}
 }
 
@@ -270,9 +269,9 @@ function startPack() {
 		timerFrame.appendChild(mapTimeSpan)
 		body.appendChild(timerFrame)
 	}
+
 	items.load(groupdistance)
 	maps.load()
-
 
 	setInterval(()=>{
 		if(!updateLoopInterrupt) {

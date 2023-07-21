@@ -56,7 +56,7 @@ export function load() {
 	if (lostLocs.length > 0) console.warn(`unconnected location(s): ${lostLocs.join(", ")}`)
 
 	console.log(elements)
-	console.log("done")
+	console.log("maps done")
 }
 
 function fixAndLinkBackAndForth(loc, attribute, map, mapName, backAttribute) {

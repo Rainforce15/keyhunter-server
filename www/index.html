@@ -15,12 +15,12 @@
 
 	<script type="module">
 		import { extracted, loadPack } from "/packloader/kh/packLoader.js";
-		loadPack("/p/OoA.zip");
+		await loadPack("/p/OoA.zip");
 
 		import { testMaps, testImages, testItems } from "/packloader/kh/testStuff.js";
 		testMaps(100)
 		testItems(200)
-		testImages(300, extracted)
+		testImages(300)
 	</script>
 </head>
 
