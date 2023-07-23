@@ -40,7 +40,7 @@ function handler(req, res) {
 				}
 			}
 		} catch(e) {
-			console.log("Invalid Path: "+baseUrl+" ("+(e && e.code)+")")
+			console.log("Invalid Path: "+baseUrl+" ("+(e?.code)+")")
 			returnData(res, 500, '500: Invalid')
 			return
 		}
@@ -98,13 +98,12 @@ let serverConnections = []
 let server = net.createServer(function(socket) {
 	console.log("new client: "+socket.remoteAddress)
 	if (serverConnections.indexOf(socket) === -1) serverConnections.push(socket)
-	//setInterval(()=>{socket.write(JSON.stringify({o:"read_u8", a:0x0739, d:"WRAM"})+"\r\n");}, 1500)
 	socket.on("data", function(data) {
 		data = data.toString()
 		ws.clients.forEach(socket => {if(socket.protocol === "memReading") data.trim().split("\r\n").forEach(d => socket.send(d))})
 	})
 
-	socket.on("close", e=>{
+	socket.on("close", _=>{
 		console.log("disconnected: "+socket.remoteAddress)
 	})
 
