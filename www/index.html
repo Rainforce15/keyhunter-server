@@ -34,7 +34,7 @@
 		function addTimers() {
 			let timerFrame = document.createElement("div")
 			timerFrame.setAttribute("class", "debugTimerFrame")
-			timerFrame.setAttribute("style", "position:fixed;top:0;right:0;background:rgba(0,0,0,0.5);width:320px;z-index:1;padding:8px;border-radius:0 0 0 8px;")
+			timerFrame.setAttribute("style", "position:fixed;top:0;right:0;background:rgba(0,0,0,0.5);width:320px;z-index:2000;padding:8px;border-radius:0 0 0 8px;")
 			timerFrame.appendChild(document.createTextNode("Item Calc+Render Time: "))
 			let itemTimeSpan = document.createElement("span")
 			itemTimeSpan.setAttribute("id", "itemRenderTime")
@@ -80,7 +80,7 @@
 </head>
 
 <body>
-<div style="display:inline-block;position:fixed;top:0;left:0;background:rgba(0,0,0,0.75);z-index:1;padding:8px;border-radius:0 0 8px 0;" id="mainProgressBars">
+<div style="display:inline-block;position:fixed;top:0;left:0;background:rgba(0,0,0,0.75);z-index:2000;padding:8px;border-radius:0 0 8px 0;" id="mainProgressBars">
 	downloaded:<br>
 	<div class="progressBarFrame"><div id="dlpb" class="progressBar"></div></div><span id="dl" style=" margin: 4px; display: inline-block;vertical-align: bottom;"></span><br>
 	<br>

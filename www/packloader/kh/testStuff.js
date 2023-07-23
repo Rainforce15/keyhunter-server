@@ -52,7 +52,7 @@ export function testMaps(t) {
 			let h2 = document.createElement("h2")
 			h2.appendChild(document.createTextNode(mapName))
 			subDiv.appendChild(h2)
-			subDiv.appendChild(mapsRender.generateImageForMap(maps.elements[mapName]))
+			subDiv.appendChild(mapsRender.generateImageForMap(maps.elements[mapName], mapName))
 			testDiv.appendChild(subDiv)
 		}
 		document.body.appendChild(testDiv)
