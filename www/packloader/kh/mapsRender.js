@@ -103,8 +103,8 @@ function generatePointData(locData, parent, mapName) {
 	if (locData.y !== undefined) style += `top:${getFactored(locData, "y") + locData.height / 2}px;`
 
 	let classString = `map_point_${mapName}__${locData.rendername}`
-	let itemList = locData.items ? `items:\n    ` + locData.items.join("\n    ") : ""
-	let title = `${locData.basename}\n${itemList}\n${locData.conDesc}`
+	let itemList = locData.items ? `\nitems:\n    ` + locData.items.join("\n    ") : ""
+	let title = `${locData.basename}${itemList}\n${locData.conDesc}`
 	let htmlClass = `map_line ${classString}`
 
 	let pointDivBG = document.createElement("div")
