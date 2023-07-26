@@ -50,9 +50,9 @@ export function generateImageForMap(map, mapName) {
 		if (locData["connectsOneWayTo"]) locData.conDesc += "connects oneway to:\n    " + generateConDesc(locData, "connectsOneWayTo") + "\n"
 		if (locData["connectsOneWayFrom"]) locData.conDesc += "connects oneway from:\n    " + generateConDesc(locData, "connectsOneWayFrom")
 
-		if (locData["connectsTo"] || locData["connectsOneWayTo"]) {
-			generateLineData(locData, "connectsTo", mapDiv)
-			generateLineData(locData, "connectsOneWayTo", mapDiv)
+		generateLineData(locData, "connectsTo", mapDiv)
+		generateLineData(locData, "connectsOneWayTo", mapDiv)
+		if (locData["connectsTo"] || locData["connectsOneWayTo"] || locData["connectsOneWayFrom"]) {
 			generatePointData(locData, mapDiv, mapName)
 		}
 		if (locData["img"]) {
@@ -85,7 +85,7 @@ function generateConDesc(locData, attribute) {
 function generateLineData(locData, connectionType, parent) {
 	let locName = locData.basename
 	if (!locData.hasLine) locData.hasLine = {}
-	for (let conName in locData[connectionType]) {
+	for (let conName in locData[connectionType] || {}) {
 		let connection = locData[connectionType][conName]
 		let conRef = connection?.ref
 		if (conRef === undefined) console.warn("no ref?", locData.basename, connectionType, conName)
