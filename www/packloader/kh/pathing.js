@@ -14,8 +14,8 @@ export function debug(value) {
 
 /*
 	 0: unreachable
-	 1: reachable
-	 2: reachable one way
+	 1: reachable one way
+	 2: reachable
  */
 
 export function pathMaps(elements) {
@@ -29,7 +29,7 @@ export function pathMaps(elements) {
 			resetPathingStatus(loc)
 			if (isEntryPoint(loc)) {
 				if (_debug) console.log("valid entry point detected: ", loc.basename)
-				loc.pathingStatus = 1
+				loc.pathingStatus = 2
 				entryPoints.push(loc)
 			}
 		}
@@ -121,26 +121,26 @@ function pathConnections(connection, startingPos, oneWay) {
 	}
 
 
-	if (ref.pathingStatus === 1 || ref.pathingStatus === 2 && src.pathingStatus !== 1) {
+	if (ref.pathingStatus === 2 || ref.pathingStatus === 1 && src.pathingStatus < 2) {
 		if (_debug) {
 			console.log(`${indent}[${pathDebugName}]  early escape - pathingStatus: `, ref.pathingStatus, `[${++pathCount}]`, connection)
 			indent = indent.substring(4)
 		}
-		return ref.pathingStatus === 1
+		return ref.pathingStatus === 2
 	}
 	if (isEntryPoint(ref)) {
-		ref.pathingStatus = 1
-		connection.pathingStatus = 1
+		ref.pathingStatus = 2
+		connection.pathingStatus = 2
 		if (_debug) console.log(`${indent}[${pathDebugName}]  early set (entry point) - pathingStatus: `, ref.pathingStatus, `[${++pathCount}]`)
 	} else if (!oneWay) {
 		let refOldStatus = ref.pathingStatus
 		ref.pathingStatus = src.pathingStatus
 		connection.pathingStatus = src.pathingStatus
 		if (_debug) console.log(`${indent}[${pathDebugName}]  early set (connected) - pathingStatus: `, refOldStatus, "->", ref.pathingStatus, `[${++pathCount}]`)
-		if (refOldStatus === 2 && ref.pathingStatus === 1) oneWayPropagation = true
+		if (refOldStatus === 1 && ref.pathingStatus === 2) oneWayPropagation = true
 	} else if (oneWay) {
-		ref.pathingStatus = 2
-		connection.pathingStatus = 2
+		ref.pathingStatus = 1
+		connection.pathingStatus = 1
 		if (_debug) console.log(`${indent}[${pathDebugName}]  early set (one way) - pathingStatus: `, ref.pathingStatus, `[${++pathCount}]`)
 	}
 
@@ -158,7 +158,7 @@ function pathConnections(connection, startingPos, oneWay) {
 		console.log(`${indent}[${ref.parentMapName}::${ref.basename}] resulting pathingStatus: `, `${src.pathingStatus}/`, originalStatus, "->", ref.pathingStatus, `[${++pathCount}]`)
 		indent = indent.substring(4)
 	}
-	return ref.pathingStatus === 1
+	return ref.pathingStatus === 2
 }
 
 function checkLocTwoWayConnections(loc, indent) {
@@ -193,12 +193,12 @@ function checkOneWayConnections(loc, oneWayPropagation, indent) {
 function checkOneWayConnection(connection, connectionName, oneWayPropagation, indent) {
 	let loc = connection.src
 	if (connection.ref) {
-		if (connection.ref.pathingStatus === 1) {
+		if (connection.ref.pathingStatus === 2) {
 			let prevStatus = loc.pathingStatus
-			loc.pathingStatus = 1
-			connection.pathingStatus = 1
+			loc.pathingStatus = 2
+			connection.pathingStatus = 2
 			if (_debug) console.log(`${indent}[${loc.parentMapName}::${loc.basename}] set after reconnecting one way - pathingStatus: `, prevStatus, "->", loc.pathingStatus, `[${++pathCount}]`)
-			if (prevStatus === 2 && loc.pathingStatus === 1) oneWayPropagation = true
+			if (prevStatus === 1) oneWayPropagation = true
 		}
 		if (connection.ref.pathingStatus) return
 		if (connection.length === 0) {
@@ -222,9 +222,9 @@ function checkOneWayLoop(connection, startingPos, indent) {
 	if (pathConnections(connection, startingPos, true)) {
 		let loc = connection.src
 		let prevStatus = loc.pathingStatus
-		loc.pathingStatus = 1
+		loc.pathingStatus = 2
 		if (_debug) console.log(`${indent}[${loc.parentMapName}::${loc.basename}] set after reconnecting one way - pathingStatus: `, prevStatus, "->", loc.pathingStatus, `[${++pathCount}]`)
-		if (prevStatus === 2 && loc.pathingStatus === 1) return true
+		if (prevStatus === 1) return true
 	}
 	return false
 }

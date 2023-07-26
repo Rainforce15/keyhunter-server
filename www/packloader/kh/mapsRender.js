@@ -242,7 +242,7 @@ function setDataForMapLoc(locData, img) {
 	if (!locData.pathingStatus) {
 		imgData = locData["imgOff"] || getSuitableImg(locData)
 		if (!locData["imgOff"] && !locData.visible === true) style += "filter:grayscale(66%);"
-	}else if (locData.pathingStatus === 1 && !locData.itemsLeft) {
+	}else if (locData.pathingStatus === 2 && !locData.itemsLeft) {
 		imgData = getSuitableImg(locData)
 		style += "filter:grayscale(100%);"
 	} else if (locData.pathingStatus > 0) {
@@ -267,8 +267,8 @@ function setLineStyleForMapLoc(locData, connectionType) {
 		let vis = ""
 		if (_showAccessInMesh) {
 			if (con.pathingStatus === 0) styleAdditions = bgNoAccess
-			else if (con.pathingStatus === 1) styleAdditions = bgAccess
-			else if (con.pathingStatus === 2) styleAdditions = bgAccessOneWay
+			else if (con.pathingStatus === 1) styleAdditions = bgAccessOneWay
+			else if (con.pathingStatus === 2) styleAdditions = bgAccess
 			vis = getStyleVisibility(locData) || getStyleVisibility(con.ref)
 		}
 		let lineDom = con.lineDomRef
@@ -283,13 +283,14 @@ function setMeshForMapLoc(locData) {
 		let vis = ""
 		let pointDom = locData.pointDomRef
 		if (_showAccessInMesh) {
-			if (locData.pathingStatus === 0) styleAdditions = locData.hasCrossMapConnections ? borderNoAccess : bgNoAccess
-			else if (locData.pathingStatus === 1) {
-				if (locData.itemsLeft) styleAdditions = locData.hasCrossMapConnections ? borderAccessWithItems : bgAccessWithItems
-				else styleAdditions = locData.hasCrossMapConnections ? borderAccess : bgAccess
-			} else if (locData.pathingStatus === 2) {
+			if (locData.pathingStatus === 0) {
+				styleAdditions = locData.hasCrossMapConnections ? borderNoAccess : bgNoAccess
+			} else if (locData.pathingStatus === 1) {
 				if (locData.itemsLeft) styleAdditions = locData.hasCrossMapConnections ? borderAccessWithItems : bgAccessWithItems
 				else styleAdditions = locData.hasCrossMapConnections ? borderAccessOneWay : bgAccessOneWay
+			} else if (locData.pathingStatus === 2) {
+				if (locData.itemsLeft) styleAdditions = locData.hasCrossMapConnections ? borderAccessWithItems : bgAccessWithItems
+				else styleAdditions = locData.hasCrossMapConnections ? borderAccess : bgAccess
 			}
 			vis = getStyleVisibility(locData)
 		}
