@@ -71,7 +71,7 @@ async function unpack(blob, progressFeedback = defaultProgress) {
 	let fileSizeTotal = 0
 	let currentSizeExtracted = 0
 	for (let file in filesMeta) {
-		if (filesMeta[file]._data && filesMeta[file]._data.uncompressedSize) {
+		if (filesMeta[file]._data?.uncompressedSize) {
 			fileSizeTotal += filesMeta[file]._data.uncompressedSize
 		}
 	}

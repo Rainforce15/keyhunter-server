@@ -27,7 +27,7 @@ function setImgForStage(item, img) {
 		imgData = item["imgOff"] || item["img"] || item.stages[0]["img"]
 		img.setAttribute("style", imgBaseStyle+/*"border: 2px solid gray; "+*/(item["imgOff"]?"":"filter: grayscale(100%);"))
 	} else {
-		imgData = item.stages && item.stages[item.curStage - 1]["img"] || item["img"]
+		imgData = item.stages?.[item.curStage - 1]["img"] || item["img"]
 		img.setAttribute("style", imgBaseStyle/*+"border: 2px solid lightgray;"*/)
 	}
 

@@ -80,7 +80,7 @@ export function parseIntString(n) {
 }
 
 export function isSocketOpen(socket) {
-	return socket != null && socket.readyState === socket.OPEN
+	return socket?.readyState === socket.OPEN
 }
 
 let logPackLoader = false

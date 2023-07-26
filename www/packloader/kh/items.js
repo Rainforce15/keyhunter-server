@@ -292,7 +292,7 @@ export function evaluateEntry(entry, val, debugField) {
 function getCapValue(item) {
 	if (item.curStage === 0) return 0
 	return item["capValue"] ||
-		item.stages && item.stages[item.curStage - 1]["capValue"] ||
+		item.stages?.[item.curStage - 1]["capValue"] ||
 		item.curStage
 }
 

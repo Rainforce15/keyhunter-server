@@ -105,9 +105,8 @@ function flagsOr(data, memType) {
 	for (let j = 0; j < data.length; j++) {
 		let flag = data[j]
 		if (
-			flag &&
-			flag[0] &&
-			flag[1] && (
+			flag?.[0] &&
+			flag?.[1] && (
 				flag[1] > 0 && (memIndex[memType][flag[0]] & flag[1]) === flag[1] ||
 				flag[1] < 0 && (memIndex[memType][flag[0]] & (-flag[1])) === 0
 			)

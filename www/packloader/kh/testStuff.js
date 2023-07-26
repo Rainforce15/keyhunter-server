@@ -13,7 +13,7 @@ export function testItems(t) {
 		for (let itemName in items.elements) {
 			if (itemName.startsWith(".")) continue
 			let item = items.elements[itemName]
-			let groupName = item.template && item.template[item.template.length-1] || (item.basename.startsWith(".") ? ".hidden" : "(no template)")
+			let groupName = item.template?.[item.template.length-1] || (item.basename.startsWith(".") ? ".hidden" : "(no template)")
 			if (!itemGroups[groupName]) itemGroups[groupName] = []
 			itemGroups[groupName].push(item)
 		}
