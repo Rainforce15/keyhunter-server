@@ -13,8 +13,7 @@ export function debug(value) {
 }
 
 /*
-	 0: undecided
-	-1: unreachable
+	 0: unreachable
 	 1: reachable
 	 2: reachable one way
  */
@@ -45,24 +44,6 @@ function pathMaps(elements) {
 		let loc = entryPoint[1]
 		pathCount = 0
 		pathLoc(loc)
-	}
-	//round up the remainders
-	for (let mapName in elements) {
-		let map = elements[mapName]
-		for (let locName in map) {
-			let loc = map[locName]
-			if (loc === undefined) continue
-			if (loc.pathingStatus === 0) loc.pathingStatus = -1
-			for (let connectionName in loc["connectsTo"] || {}) {
-				if (loc["connectsTo"][connectionName].pathingStatus === 0) loc["connectsTo"][connectionName].pathingStatus = -1
-			}
-			for (let connectionName in loc["connectsOneWayTo"] || {}) {
-				if (loc["connectsOneWayTo"][connectionName].pathingStatus === 0) loc["connectsOneWayTo"][connectionName].pathingStatus = -1
-			}
-			for (let connectionName in loc["connectsOneWayFrom"] || {}) {
-				if (loc["connectsOneWayFrom"][connectionName].pathingStatus === 0) loc["connectsOneWayFrom"][connectionName].pathingStatus = -1
-			}
-		}
 	}
 }
 

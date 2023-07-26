@@ -2,14 +2,13 @@ import {elements, getFactored, hasDefinedConnections} from "./maps.js";
 import {extracted} from "./packLoader.js";
 import * as items from "./items.js";
 
-const pathValues = {"-1": "unreachable", 0: "unknown", 1: "reachable", 2: "oneway trip"}
+const pathValues = {0: "unreachable", 1: "reachable", 2: "oneway trip"}
 
 let _showAllLocations = false
 let _showAccessInMesh = false
 
 const colors = {
 	noAccess: "#777",
-	unknown: "#F00",
 	access: "#FFF",
 	accessWithItems: "#F3A",
 	accessOneWay: "#0AF",
@@ -17,14 +16,12 @@ const colors = {
 }
 
 const bgNoAccess = `background:${colors.noAccess};z-index:2;`
-const bgUnknown = `background:${colors.unknown};`
 const bgAccess = `background:${colors.access};`
 const bgAccessWithItems = `background:${colors.accessWithItems};`
 const bgAccessOneWay = `background:${colors.accessOneWay};`
 const bgBg = `background:${colors.bg};`
 
 const borderNoAccess = `border: 2px solid ${colors.noAccess};background:${colors.bg};z-index:2;`
-const borderUnknown = `border: 2px solid ${colors.unknown};background:${colors.bg};`
 const borderAccess = `border: 2px solid ${colors.access};background:${colors.bg};`
 const borderAccessWithItems = `border: 2px solid ${colors.accessWithItems};background:${colors.bg};`
 const borderAccessOneWay = `border: 2px solid ${colors.accessOneWay};background:${colors.bg};`
@@ -251,7 +248,7 @@ function setDataForMapLoc(locData, img) {
 	else if (hasConnections) style += `z-index:1000;`
 
 	let imgData = undefined
-	if (locData.pathingStatus === -1) {
+	if (locData.pathingStatus === 0) {
 		imgData = locData["imgOff"] || getSuitableImg(locData)
 		if (!locData["imgOff"] && !locData.visible === true) style += "filter:grayscale(66%);"
 	}else if (locData.pathingStatus === 1 && !locData.itemsLeft) {
@@ -278,8 +275,7 @@ function setLineStyleForMapLoc(locData, connectionType) {
 		let styleAdditions = ""
 		let vis = ""
 		if (_showAccessInMesh) {
-			if (con.pathingStatus === -1) styleAdditions = bgNoAccess
-			else if (con.pathingStatus === 0) styleAdditions = bgUnknown
+			if (con.pathingStatus === 0) styleAdditions = bgNoAccess
 			else if (con.pathingStatus === 1) styleAdditions = bgAccess
 			else if (con.pathingStatus === 2) styleAdditions = bgAccessOneWay
 			vis = getStyleVisibility(locData) || getStyleVisibility(con.ref)
@@ -297,8 +293,7 @@ function setMeshForMapLoc(locData) {
 		let vis = ""
 		let pointDom = locData.pointDomRef
 		if (_showAccessInMesh) {
-			if (locData.pathingStatus === -1) styleAdditions = locData.hasCrossMapConnections ? borderNoAccess : bgNoAccess
-			else if (locData.pathingStatus === 0) styleAdditions = locData.hasCrossMapConnections ? borderUnknown : bgUnknown
+			if (locData.pathingStatus === 0) styleAdditions = locData.hasCrossMapConnections ? borderNoAccess : bgNoAccess
 			else if (locData.pathingStatus === 1) {
 				if (locData.itemsLeft) styleAdditions = locData.hasCrossMapConnections ? borderAccessWithItems : bgAccessWithItems
 				else styleAdditions = locData.hasCrossMapConnections ? borderAccess : bgAccess
