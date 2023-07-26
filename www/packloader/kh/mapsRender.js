@@ -11,7 +11,7 @@ const colors = {
 	noAccess: "#777",
 	access: "#FFF",
 	accessWithItems: "#F3A",
-	accessOneWay: "#0AF",
+	accessOneWay: "#5AF",
 	bg: "#000"
 }
 
