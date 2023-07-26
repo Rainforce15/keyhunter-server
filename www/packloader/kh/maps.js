@@ -2,7 +2,6 @@ import {extracted} from "./packLoader.js";
 import * as base from "./base.js";
 import * as pathing from "./pathing.js";
 import * as items from "./items.js";
-import {pathMaps} from "./pathing.js";
 
 export let elements
 
