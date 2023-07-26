@@ -83,15 +83,15 @@ function hasCrossMapConnections(locData) {
 	return false;
 }
 
-function fixAndLinkBackAndForth(loc, attribute, map, mapName, backAttribute) {
-	if (!loc[attribute]) return
-	if (!backAttribute) backAttribute = attribute
-	if (typeof loc[attribute] === "string") {
-		let oriConnection = loc[attribute]
-		loc[attribute] = {}
-		loc[attribute][oriConnection] = []
+function fixAndLinkBackAndForth(loc, connectionType, map, mapName, backAttribute) {
+	if (!loc[connectionType]) return
+	if (!backAttribute) backAttribute = connectionType
+	if (typeof loc[connectionType] === "string") {
+		let oriConnection = loc[connectionType]
+		loc[connectionType] = {}
+		loc[connectionType][oriConnection] = []
 	}
-	for (let connectionName in loc[attribute]) {
+	for (let connectionName in loc[connectionType]) {
 		let connectionNameParts = connectionName.split(/::/)
 		if (connectionNameParts.length > 2) console.warn(`couldn't parse loc reference: ${connectionName}`)
 		let connectionMap = connectionNameParts.length > 1?elements[connectionNameParts[0]]:map
@@ -99,9 +99,10 @@ function fixAndLinkBackAndForth(loc, attribute, map, mapName, backAttribute) {
 		if (!connectionMap) console.warn(`could not find map for ${connectionName}`)
 		if (!connectionLoc) console.warn(`could not find location for ${connectionName}`)
 
-		loc[attribute][connectionName] = fixUpReq(loc[attribute][connectionName])
+		loc[connectionType][connectionName] = fixUpReq(loc[connectionType][connectionName])
+		loc[connectionType][connectionName].connectionType = connectionType
 
-		let connectionData = loc[attribute][connectionName]
+		let connectionData = loc[connectionType][connectionName]
 		if (connectionMap[connectionLoc]) {
 			let target = connectionMap[connectionLoc]
 			connectionData.ref = target
