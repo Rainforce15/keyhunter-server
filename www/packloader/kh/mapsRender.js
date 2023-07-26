@@ -2,17 +2,42 @@ import {elements, getFactored, hasDefinedConnections} from "./maps.js";
 import {extracted} from "./packLoader.js";
 import * as items from "./items.js";
 
-const pathValues = {"-1":"unreachable", 0:"unknown", 1:"reachable", 2:"oneway trip"}
+const pathValues = {"-1": "unreachable", 0: "unknown", 1: "reachable", 2: "oneway trip"}
 
-export function showEverything(value) {
-	if (value === undefined) {
-		return _showEverything
-	} else {
-		_showEverything = value
-	}
+let _showAllLocations = false
+let _showAccessInMesh = false
+
+const colors = {
+	noAccess: "#777",
+	unknown: "#F00",
+	access: "#FFF",
+	accessWithItems: "#F3A",
+	accessOneWay: "#0AF",
+	bg: "#000"
 }
 
-let _showEverything = false
+const bgNoAccess = `background:${colors.noAccess};z-index:2;`
+const bgUnknown = `background:${colors.unknown};`
+const bgAccess = `background:${colors.access};`
+const bgAccessWithItems = `background:${colors.accessWithItems};`
+const bgAccessOneWay = `background:${colors.accessOneWay};`
+const bgBg = `background:${colors.bg};`
+
+const borderNoAccess = `border: 2px solid ${colors.noAccess};background:${colors.bg};z-index:2;`
+const borderUnknown = `border: 2px solid ${colors.unknown};background:${colors.bg};`
+const borderAccess = `border: 2px solid ${colors.access};background:${colors.bg};`
+const borderAccessWithItems = `border: 2px solid ${colors.accessWithItems};background:${colors.bg};`
+const borderAccessOneWay = `border: 2px solid ${colors.accessOneWay};background:${colors.bg};`
+
+export function showAllLocations(value) {
+	if (value === undefined) return _showAllLocations
+	else _showAllLocations = value
+}
+
+export function showAccessInMesh(value) {
+	if (value === undefined) return _showAccessInMesh
+	else _showAccessInMesh = value
+}
 
 export function generateImageForMap(map, mapName) {
 	let mapDiv = document.createElement("div")
@@ -60,12 +85,13 @@ function generateConDesc(locData, attribute) {
 		)).join("\n    ")
 }
 
-function generateLineData(locData, connectionAttribute, parent) {
+function generateLineData(locData, connectionType, parent) {
 	let locName = locData.basename
 	if (!locData.hasLine) locData.hasLine = {}
-	for (let conName in locData[connectionAttribute]) {
-		let conRef = locData[connectionAttribute][conName] && locData[connectionAttribute][conName].ref
-		if (conRef === undefined) console.warn("no ref?", locData.basename, connectionAttribute, conName)
+	for (let conName in locData[connectionType]) {
+		let connection = locData[connectionType][conName]
+		let conRef = connection?.ref
+		if (conRef === undefined) console.warn("no ref?", locData.basename, connectionType, conName)
 		let nameOrder = [locData.rendername, conRef.rendername].sort()
 		let connectionClassName = `map_line_${nameOrder[0]}__${nameOrder[1]}`
 		if (conRef && !conRef.hasLine) conRef.hasLine = {}
@@ -77,46 +103,66 @@ function generateLineData(locData, connectionAttribute, parent) {
 			let y2 = getFactored(conRef, "y") + (conRef.width?conRef.width/2:0)
 
 			let titleString = `${locData.basename} -- ${conRef.basename}\n`
-			titleString += locData[connectionAttribute][conName].map(e=>JSON.stringify(e)).join("\n")
+			titleString += connection.map(e=>JSON.stringify(e)).join("\n")
 
-			let lineDivBG = createLine(x, y, x2, y2, connectionClassName, "background:black;height:4px;z-index:-1;")
+			let lineDivBG = createLine(x, y, x2, y2, connectionClassName, bgBg + "height:4px;z-index:1;")
 			lineDivBG.setAttribute("title", titleString)
 			parent.appendChild(lineDivBG)
-			let lineDiv = createLine(x, y, x2, y2, connectionClassName, "background:white;height:2px;")
+			let lineDiv = createLine(x, y, x2, y2, connectionClassName, bgAccess + "height:2px;z-index:3;")
 			lineDiv.setAttribute("title", titleString)
+			lineDiv.bg = lineDivBG
 			parent.appendChild(lineDiv)
 
 			locData.hasLine[conName] = 1
 			conRef.hasLine[locName] = 1
 			if (!locData.lineDomRefs[connectionClassName]) locData.lineDomRefs[connectionClassName] = []
 			if (!conRef.lineDomRefs[connectionClassName]) conRef.lineDomRefs[connectionClassName] = []
+			if (!connection.lineDomRefs) connection.lineDomRefs = []
 			locData.lineDomRefs[connectionClassName].push(lineDiv)
 			conRef.lineDomRefs[connectionClassName].push(lineDiv)
+			connection.lineDomRefs.push(lineDiv)
 		}
 	}
 }
 
+function getLocnameAccessItemsLeft(locData) {
+	return `${locData.basename} (${pathValues[locData.pathingStatus]}${locData.items ? ", " + locData.itemsLeft + "/" + locData.items.length + " items left" : ""})`
+}
+
 function generatePointData(locData, parent, mapName) {
 	if (locData.x === undefined && locData.y === undefined) return
-	let style = "border-radius:50%;transform:translate(-50%,-50%);position:absolute;"
+	let style = "border-radius:50%;transform:translate(-50%,-50%);z-index:4;position:absolute;"
 	if (locData.x !== undefined) style += `left:${getFactored(locData, "x") + locData.width / 2}px;`
 	if (locData.y !== undefined) style += `top:${getFactored(locData, "y") + locData.height / 2}px;`
 
 	let classString = `map_point_${mapName}__${locData.rendername}`
 	let itemList = locData.items ? `\nitems:\n    ` + locData.items.join("\n    ") : ""
-	let title = `${locData.basename}${itemList}\n${locData.conDesc}`
+	let title = `${getLocnameAccessItemsLeft(locData)}${itemList}\n${locData.conDesc}`
 	let htmlClass = `map_line ${classString}`
 
 	let pointDivBG = document.createElement("div")
 	pointDivBG.setAttribute("title", title)
-	pointDivBG.setAttribute("style", `${style}background:black;width:6px;height:6px;z-index:-1;`)
+
+	let bgStyleData
+	if (locData.hasCrossMapConnections) bgStyleData = `${style}${bgBg}width:9px;height:9px;z-index:1;`
+	else bgStyleData = `${style}${bgBg}width:8px;height:8px;z-index:1;`
+
+	pointDivBG.setAttribute("style", bgStyleData)
 	pointDivBG.setAttribute("class", htmlClass)
+	pointDivBG.styleData = bgStyleData
 	parent.appendChild(pointDivBG)
 
 	let pointDiv = document.createElement("div")
 	pointDiv.setAttribute("title", title)
-	pointDiv.setAttribute("style", `${style}background:white;width:4px;height:4px;`)
+
+	let styleData
+	if (locData.hasCrossMapConnections) styleData = `${style}${borderAccess}width:3px;height:3px;`
+	else styleData = `${style}${bgAccess}width:6px;height:6px;`
+
+	pointDiv.setAttribute("style", styleData)
 	pointDiv.setAttribute("class", htmlClass)
+	pointDiv.styleData = styleData
+	pointDiv.bg = pointDivBG
 	parent.appendChild(pointDiv)
 	if(!locData.pointDomRef) locData.pointDomRef = pointDiv
 }
@@ -145,8 +191,12 @@ export function updateAllMapRender() {
 
 function updateMapRender(map) {
 	for (let locName in map) {
+		map[locName].linesSet = false
+	}
+	for (let locName in map) {
 		let locData = map[locName]
 		if (locData === undefined) continue
+		setMeshForMapLoc(locData)
 		let locImgs = locData.domRefs
 		for (let locImg of locImgs) {
 			setDataForMapLoc(locData, locImg)
@@ -168,11 +218,17 @@ function getStyleXYWH(obj) {
 function getStyleVisibility(obj) {
 	if (obj.visible === true) return ""
 	if (obj.visible && !items.evaluateAnd(obj.visible, obj.basename)) return "visibility:hidden;"
+	return ""
+}
+
+function getStyleVisibilityIncludingAccess(obj) {
+	if (obj.visible === true) return ""
+	if (obj.visible && !items.evaluateAnd(obj.visible, obj.basename)) return "visibility:hidden;"
 
 	if (!hasDefinedConnections(obj)) return ""
 
 	let doNotRender = obj.pathingStatus < 1 || !obj.itemsLeft
-	if (!_showEverything && doNotRender) return "visibility:hidden;"
+	if (!_showAllLocations && doNotRender) return "visibility:hidden;"
 
 	return ""
 }
@@ -188,12 +244,11 @@ function getSuitableImg(locData) {
 function setDataForMapLoc(locData, img) {
 	let style = "image-rendering:crisp-edges;"
 	style += getStyleXYWH(locData)
-	style += getStyleVisibility(locData)
+	style += getStyleVisibilityIncludingAccess(locData)
 	let hasConnections = hasDefinedConnections(locData)
 
 	if (locData["layer"]) style += `z-index:${locData["layer"]};`
-	else if (!hasConnections) style += `z-index:-1000;`
-	else style += `z-index:1000;`
+	else if (hasConnections) style += `z-index:1000;`
 
 	let imgData = undefined
 	if (locData.pathingStatus === -1) {
@@ -211,7 +266,76 @@ function setDataForMapLoc(locData, img) {
 
 	if (hasConnections) img.setAttribute(
 		"title",
-		`${locData.basename} (${pathValues[locData.pathingStatus]}${locData.items ? ", " + locData.itemsLeft + "/" + locData.items.length + " items left" : ""})\n${locData.conDesc}`
+		`${getLocnameAccessItemsLeft(locData)}\n${locData.conDesc}`
 	)
 	img.setAttribute("style", style)
+}
+
+function setLineStyleForMapLoc(locData, connectionType) {
+	for (let conName in locData[connectionType]) {
+		let con = locData[connectionType][conName]
+		if (!con.lineDomRefs) continue
+		let styleAdditions = ""
+		let vis = ""
+		if (_showAccessInMesh) {
+			if (con.pathingStatus === -1) styleAdditions = bgNoAccess
+			else if (con.pathingStatus === 0) styleAdditions = bgUnknown
+			else if (con.pathingStatus === 1) styleAdditions = bgAccess
+			else if (con.pathingStatus === 2) styleAdditions = bgAccessOneWay
+			vis = getStyleVisibility(locData) || getStyleVisibility(con.ref)
+		}
+		for (let lineDom of con.lineDomRefs) {
+			lineDom.setAttribute("style", `${lineDom.styleData}${styleAdditions}${vis}`)
+			lineDom.bg.setAttribute("style", `${lineDom.bg.styleData}${vis}`)
+		}
+	}
+}
+
+function setMeshForMapLoc(locData) {
+	if (locData.pointDomRef) {
+		let styleAdditions = ""
+		let vis = ""
+		let pointDom = locData.pointDomRef
+		if (_showAccessInMesh) {
+			if (locData.pathingStatus === -1) styleAdditions = locData.hasCrossMapConnections ? borderNoAccess : bgNoAccess
+			else if (locData.pathingStatus === 0) styleAdditions = locData.hasCrossMapConnections ? borderUnknown : bgUnknown
+			else if (locData.pathingStatus === 1) {
+				if (locData.itemsLeft) styleAdditions = locData.hasCrossMapConnections ? borderAccessWithItems : bgAccessWithItems
+				else styleAdditions = locData.hasCrossMapConnections ? borderAccess : bgAccess
+			} else if (locData.pathingStatus === 2) {
+				if (locData.itemsLeft) styleAdditions = locData.hasCrossMapConnections ? borderAccessWithItems : bgAccessWithItems
+				else styleAdditions = locData.hasCrossMapConnections ? borderAccessOneWay : bgAccessOneWay
+			}
+			vis = getStyleVisibility(locData)
+		}
+		pointDom.setAttribute("style", `${pointDom.styleData}${styleAdditions}${vis}`)
+		pointDom.bg.setAttribute("style", `${pointDom.bg.styleData}${vis}`)
+
+		let itemList = locData.items ? `\nitems:\n    ` + locData.items.join("\n    ") : ""
+		let title = `${getLocnameAccessItemsLeft(locData)}${itemList}\n${locData.conDesc}`
+		pointDom.setAttribute("title", title)
+		pointDom.bg.setAttribute("title", title)
+
+		setLineStyleForMapLoc(locData, "connectsTo")
+		setLineStyleForMapLoc(locData, "connectsOneWayTo")
+		setLineStyleForMapLoc(locData, "connectsOneWayFrom")
+	}
+
+	let alreadyCovered = {}
+	for (let conName in locData["connectsTo"]) {
+		let con = locData["connectsTo"][conName]
+		if (con.ref.linesSet) continue
+		alreadyCovered[con.ref.basename] = true
+	}
+	for (let conName in locData["connectsOneWayTo"]) {
+		let con = locData["connectsOneWayTo"][conName]
+		if (con.ref.linesSet || alreadyCovered[con.ref.basename]) continue
+		alreadyCovered[con.ref.basename] = true
+	}
+	for (let conName in locData["connectsOneWayFrom"]) {
+		let con = locData["connectsOneWayFrom"][conName]
+		if (con.ref.linesSet || alreadyCovered[con.ref.basename]) continue
+		alreadyCovered[con.ref.basename] = true
+	}
+	locData.linesSet = true
 }

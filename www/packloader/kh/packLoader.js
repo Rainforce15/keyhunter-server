@@ -157,6 +157,18 @@ document.addEventListener("keypress", e => {
 		return false;
 	}
 	if (e.key === "2") {
+		if (mapsRender.showAllLocations()) {
+			mapsRender.showAllLocations(false)
+			mapsRender.updateAllMapRender()
+		} else {
+			mapsRender.showAllLocations(true)
+			mapsRender.updateAllMapRender()
+		}
+		e.stopPropagation()
+		e.preventDefault()
+		return false;
+	}
+	if (e.key === "3") {
 		if (showLines) {
 			document.head.removeChild(showLines)
 			showLines = undefined
@@ -169,19 +181,19 @@ document.addEventListener("keypress", e => {
 		e.preventDefault()
 		return false;
 	}
-	if (e.key === "3") {
-		if (mapsRender.showEverything()) {
-			mapsRender.showEverything(false)
+	if (e.key === "4") {
+		if (mapsRender.showAccessInMesh()) {
+			mapsRender.showAccessInMesh(false)
 			mapsRender.updateAllMapRender()
 		} else {
-			mapsRender.showEverything(true)
+			mapsRender.showAccessInMesh(true)
 			mapsRender.updateAllMapRender()
 		}
 		e.stopPropagation()
 		e.preventDefault()
 		return false;
 	}
-	if (e.key === "p") {
+	if (e.key === "t") {
 		if (!pathing.debug()) {
 			console.log("dumping pathing data:")
 			pathing.debug(true)
@@ -190,7 +202,7 @@ document.addEventListener("keypress", e => {
 		e.preventDefault()
 		return false;
 	}
-	if (e.key === "Pause") {
+	if (e.key === "p") {
 		if (updateLoopInterrupt) {
 			console.log("continuing...")
 			updateLoopInterrupt = false

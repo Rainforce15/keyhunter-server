@@ -2,6 +2,7 @@ import {extracted} from "./packLoader.js";
 import * as base from "./base.js";
 import * as pathing from "./pathing.js";
 import * as items from "./items.js";
+import {path} from "./pathing.js";
 
 export let elements
 
@@ -34,14 +35,22 @@ export function init() {
 			}
 			locData.domRefs = []
 			locData.lineDomRefs = {}
+			locData.entryPoint = fixUpReq(locData.entryPoint)
 			fixAndLinkBackAndForth(locData, "connectsTo", map, mapName)
 			fixAndLinkBackAndForth(locData, "connectsOneWayTo", map, mapName, "connectsOneWayFrom")
 			fixAndLinkBackAndForth(locData, "connectsOneWayFrom", map, mapName, "connectsOneWayTo")
 		}
 	}
+	for (let mapName in elements) {
+		let map = elements[mapName]
+		for (let locName in map) {
+			let locData = map[locName]
+			if (hasCrossMapConnections(locData)) locData.hasCrossMapConnections = true
+		}
+	}
 
 	pathing.setupEntryPaths(elements)
-	pathing.pathMaps(elements)
+	pathing.path(elements)
 	let lostLocs = []
 	for (let mapName in elements) {
 		let map = elements[mapName]
@@ -59,6 +68,19 @@ export function init() {
 	console.log("maps done")
 
 	return elements
+}
+
+function hasCrossMapConnections(locData) {
+	for (let conName in locData["connectsTo"]) {
+		if (conName.indexOf("::") !== -1) return true
+	}
+	for (let conName in locData["connectsOneWayTo"]) {
+		if (conName.indexOf("::") !== -1) return true
+	}
+	for (let conName in locData["connectsOneWayFrom"]) {
+		if (conName.indexOf("::") !== -1) return true
+	}
+	return false;
 }
 
 function fixAndLinkBackAndForth(loc, attribute, map, mapName, backAttribute) {
@@ -83,6 +105,7 @@ function fixAndLinkBackAndForth(loc, attribute, map, mapName, backAttribute) {
 		if (connectionMap[connectionLoc]) {
 			let target = connectionMap[connectionLoc]
 			connectionData.ref = target
+			connectionData.src = loc
 			let locName;
 			if (connectionMap !== map) {
 				locName = `${mapName}::${loc.basename}`
@@ -94,6 +117,7 @@ function fixAndLinkBackAndForth(loc, attribute, map, mapName, backAttribute) {
 			target[backAttribute][locName] = fixUpReq(target[backAttribute][locName])
 			let backConnectionData = target[backAttribute][locName]
 			backConnectionData.ref = loc
+			backConnectionData.src = target
 			for (let requirement of connectionData) {
 				if (backConnectionData.indexOf(requirement) === -1) backConnectionData.push(requirement)
 			}
@@ -141,7 +165,7 @@ function extractXYWH(obj) {
 }
 
 export function updateAllMapData() {
-	pathing.pathMaps(elements)
+	pathing.path(elements)
 
 	for (let mapName in elements) {
 		let map = elements[mapName]
