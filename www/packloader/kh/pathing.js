@@ -155,11 +155,11 @@ function checkOneWayConnection(connection, connectionName, oneWayPropagation) {
 		}
 		if (connection.ref.pathingStatus) return
 		if (connection.length === 0) {
-			oneWayPropagation = checkOneWayLoop(connection.ref, loc)
+			oneWayPropagation = checkOneWayLoop(connection)
 		} else {
 			for (let factors of connection) {
 				if (items.evaluateAnd(factors, `connectsOneWayTo ${connectionName} of ${loc.basename}`)) {
-					oneWayPropagation = checkOneWayLoop(connection.ref, loc)
+					oneWayPropagation = checkOneWayLoop(connection)
 					break
 				}
 			}
@@ -171,8 +171,9 @@ function checkOneWayConnection(connection, connectionName, oneWayPropagation) {
 	return oneWayPropagation
 }
 
-function checkOneWayLoop(connections, loc) {
-	if (pathConnections(connections, loc, true)) {
+function checkOneWayLoop(connection) {
+	if (pathConnections(connection, true)) {
+		let loc = connection.src
 		let prevStatus = loc.pathingStatus
 		loc.pathingStatus = 1
 		if (prevStatus === 2 && loc.pathingStatus === 1) return true
