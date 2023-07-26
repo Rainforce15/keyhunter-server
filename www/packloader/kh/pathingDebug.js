@@ -175,11 +175,11 @@ function checkOneWayConnection(connection, connectionName, oneWayPropagation, in
 		}
 		if (connection.ref.pathingStatus) return
 		if (connection.length === 0) {
-			oneWayPropagation = checkOneWayLoop(connection.ref, loc, indent)
+			oneWayPropagation = checkOneWayLoop(connection, indent)
 		} else {
 			for (let factors of connection) {
 				if (items.evaluateAnd(factors, `connectsOneWayTo ${connectionName} of ${loc.basename}`)) {
-					oneWayPropagation = checkOneWayLoop(connection.ref, loc, indent)
+					oneWayPropagation = checkOneWayLoop(connection, indent)
 					break
 				}
 			}
@@ -191,8 +191,9 @@ function checkOneWayConnection(connection, connectionName, oneWayPropagation, in
 	return oneWayPropagation
 }
 
-function checkOneWayLoop(connections, loc, indent) {
-	if (pathConnections(connections, loc, true)) {
+function checkOneWayLoop(connection, indent) {
+	if (pathConnections(connection, true)) {
+		let loc = connection.src
 		let prevStatus = loc.pathingStatus
 		loc.pathingStatus = 1
 		console.log(`${indent}[${loc.parentMapName}::${loc.basename}] set after reconnecting one way - pathingStatus: `, prevStatus, "->", loc.pathingStatus, `[${++pathCount}]`)
