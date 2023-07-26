@@ -176,7 +176,6 @@
 			"additionalProperties": false,
 			"description": "Collection of items to check for. Accepts an item name, or an object with item name keys with concrete numeric values, a list of accepted values or comparisons like \"<5\"",
 			"anyOf": [
-				{"type": "boolean"},
 				{"type": "string"},
 				{"type": "array", "items": "string"},
 				{
