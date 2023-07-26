@@ -91,7 +91,6 @@ function generateLineData(loc, connectionType, parent) {
 		let locData = connection?.src
 		if (refData.parentMap !== locData.parentMap) continue
 
-		if (refData === undefined) console.warn("no ref?", locData.basename, connectionType, conName)
 		let nameOrder = [locData.rendername, refData.rendername].sort()
 		let connectionClassName = `map_line_${nameOrder[0]}__${nameOrder[1]}`
 
