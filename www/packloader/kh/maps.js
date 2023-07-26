@@ -103,8 +103,13 @@ function fixAndLinkBackAndForth(loc, connectionType, map, mapName, backAttribute
 		let target = getLocByName(connectionName, map)
 
 		if (target) {
-			connection.ref = target
-			connection.src = loc
+			if (connectionType === "connectsOneWayFrom") {
+				connection.ref = loc
+				connection.src = target
+			} else {
+				connection.ref = target
+				connection.src = loc
+			}
 
 			let locName;
 			if (target.parentMap !== map) {
