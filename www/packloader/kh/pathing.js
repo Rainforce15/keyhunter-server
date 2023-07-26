@@ -22,6 +22,7 @@ export function debug(value) {
 export function path(elements) {
 	if (_debug) pathingDebug.pathMaps(elements)
 	else pathMaps(elements)
+	_debug = false
 }
 
 function pathMaps(elements) {
