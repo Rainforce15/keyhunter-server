@@ -2,6 +2,7 @@ import {extracted} from "./packLoader.js";
 import * as base from "./base.js";
 import * as pathing from "./pathing.js";
 import * as items from "./items.js";
+import {pathMaps} from "./pathing.js";
 
 export let elements
 
@@ -13,6 +14,9 @@ export function init() {
 		let map = elements[mapName]
 		base.applyBaseRendername(map)
 		base.applyTemplates(map, elements[".templates"])
+	}
+	for (let mapName in elements) {
+		let map = elements[mapName]
 		for (let locName in map) {
 			let locData = map[locName]
 			if (locData === undefined) {
@@ -48,8 +52,8 @@ export function init() {
 		}
 	}
 
-	pathing.setupEntryPaths(elements)
-	pathing.path(elements)
+	setupEntryPaths(elements)
+	// pathing.pathMaps(elements)
 	let lostLocs = []
 	for (let mapName in elements) {
 		let map = elements[mapName]
@@ -83,6 +87,7 @@ function hasCrossMapConnections(locData) {
 }
 
 function fixAndLinkBackAndForth(loc, connectionType, map, mapName, backAttribute) {
+	loc.parentMap = map
 	if (!loc[connectionType]) return
 	if (!backAttribute) backAttribute = connectionType
 	if (typeof loc[connectionType] === "string") {
@@ -90,39 +95,59 @@ function fixAndLinkBackAndForth(loc, connectionType, map, mapName, backAttribute
 		loc[connectionType] = {}
 		loc[connectionType][oriConnection] = []
 	}
-	for (let connectionName in loc[connectionType]) {
-		let connectionNameParts = connectionName.split(/::/)
-		if (connectionNameParts.length > 2) console.warn(`couldn't parse loc reference: ${connectionName}`)
-		let connectionMap = connectionNameParts.length > 1?elements[connectionNameParts[0]]:map
-		let connectionLoc = connectionNameParts.length > 1?connectionNameParts[1]:connectionNameParts[0]
-		if (!connectionMap) console.warn(`could not find map for ${connectionName}`)
-		if (!connectionLoc) console.warn(`could not find location for ${connectionName}`)
+	let connectionSet = loc[connectionType]
+	for (let connectionName in connectionSet) {
+		connectionSet[connectionName] = fixUpReq(connectionSet[connectionName])
+		let connection = connectionSet[connectionName]
+		if (connection.ref && connection.src) continue // we already did this
+		connection.connectionType = connectionType
+		let target = getLocByName(connectionName, map)
 
-		loc[connectionType][connectionName] = fixUpReq(loc[connectionType][connectionName])
-		loc[connectionType][connectionName].connectionType = connectionType
+		if (target) {
+			connection.ref = target
+			connection.src = loc
 
-		let connectionData = loc[connectionType][connectionName]
-		if (connectionMap[connectionLoc]) {
-			let target = connectionMap[connectionLoc]
-			connectionData.ref = target
-			connectionData.src = loc
 			let locName;
-			if (connectionMap !== map) {
+			if (target.parentMap !== map) {
 				locName = `${mapName}::${loc.basename}`
 			} else {
 				locName = loc.basename
 			}
+
 			if (!target[backAttribute]) target[backAttribute] = {}
-			if (!target[backAttribute][locName]) target[backAttribute][locName] = []
-			target[backAttribute][locName] = fixUpReq(target[backAttribute][locName])
-			let backConnectionData = target[backAttribute][locName]
-			backConnectionData.ref = loc
-			backConnectionData.src = target
-			for (let requirement of connectionData) {
-				if (backConnectionData.indexOf(requirement) === -1) backConnectionData.push(requirement)
+			let backConnectionSet = target[backAttribute]
+			let backConnection = backConnectionSet[locName]
+			if (backConnection === connection) continue // we already did this
+
+			backConnection = fixUpReq(backConnection)
+
+			for (let requirement of backConnection) {
+				connection.push(requirement)
 			}
+
+			backConnectionSet[locName] = connection
 		}
 	}
+}
+
+function getLocByName(name, defaultMap) {
+	let locNameParts = name.split(/::/)
+	if (locNameParts.length > 2) console.warn(`couldn't parse loc reference: ${name}`)
+
+	let locMap
+	let locName
+	if (locNameParts.length > 1) {
+		locMap = elements[locNameParts[0]]
+		locName = locNameParts[1]
+	} else {
+		locMap = defaultMap
+		locName = locNameParts[0]
+	}
+	if (!locMap) console.warn(`could not find map for ${name}`)
+	if (!locName) console.warn(`could not find location for ${name}`)
+	let loc = locMap[locName]
+	if (!loc.parentMap) loc.parentMap = locMap
+	return loc
 }
 
 function fixUpReq(val) {
@@ -165,7 +190,7 @@ function extractXYWH(obj) {
 }
 
 export function updateAllMapData() {
-	pathing.path(elements)
+	pathing.pathMaps(elements)
 
 	for (let mapName in elements) {
 		let map = elements[mapName]
@@ -217,3 +242,42 @@ export function getFactored(obj, xy) {
 	return ret
 }
 
+function setupEntryPaths(elements) {
+	console.log("Entry Pathing Check ...")
+	let entryPoints = []
+	console.log("clearing connectedToEntryPoint")
+	for (let mapName in elements) {
+		let map = elements[mapName]
+		for (let locName in map) {
+			let loc = map[locName]
+			if (loc === undefined) continue
+			loc.connectedToEntryPoint = false
+			if (loc["entryPoint"]) entryPoints.push([map, loc])
+		}
+	}
+	console.log("validating...")
+	for (let entryPoint of entryPoints) {
+		let loc = entryPoint[1]
+		loc.connectedToEntryPoint = true
+		propagateEntryConnectionForAll(loc["connectsTo"])
+		propagateEntryConnectionForAll(loc["connectsOneWayTo"])
+	}
+}
+
+function propagateEntryConnectionForAll(connectionList) {
+	for (let connectionName in connectionList) {
+		if (connectionList[connectionName].ref) propagateEntryConnection(connectionList[connectionName])
+	}
+}
+
+function propagateEntryConnection(con) {
+	if (!con.connectedToEntryPoint) {
+		con.connectedToEntryPoint = true
+	}
+	let loc = con.ref
+	if (!loc.connectedToEntryPoint) {
+		loc.connectedToEntryPoint = true
+		propagateEntryConnectionForAll(loc["connectsTo"])
+		propagateEntryConnectionForAll(loc["connectsOneWayTo"])
+	}
+}
