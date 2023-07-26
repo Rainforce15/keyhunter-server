@@ -64,6 +64,7 @@
 		try {
 			await loadPack("/p/OoA.zip", ProgressBarUpdater("dl"), ProgressBarUpdater("ex2"), ProgressBarUpdater("conv"), updateTimers);
 		} catch (e) {
+			console.log(e)
 			showError(e)
 		}
 
