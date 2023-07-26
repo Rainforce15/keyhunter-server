@@ -104,7 +104,7 @@ function pathConnections(connection, oneWay) {
 	let pathDebugName
 	let originalStatus
 	let oneWayPropagation = false
-	let {ref, src} = connection
+	let {src, ref} = connection
 
 	originalStatus = ref.pathingStatus
 	indent += "    "
@@ -126,6 +126,9 @@ function pathConnections(connection, oneWay) {
 		let refOldStatus = ref.pathingStatus
 		ref.pathingStatus = src.pathingStatus
 		connection.pathingStatus = src.pathingStatus
+		if (connection.connectionType === "connectsOneWayTo" && ref["connectsOneWayFrom"]?.[src.basename]) ref["connectsOneWayFrom"][src.basename].pathingStatus = src.pathingStatus
+		else if (connection.connectionType === "connectsOneWayFrom" && ref["connectsOneWayTo"]?.[src.basename]) ref["connectsOneWayTo"][src.basename].pathingStatus = src.pathingStatus
+		else if (ref["connectsTo"]?.[src.basename]) ref["connectsTo"][src.basename].pathingStatus = src.pathingStatus
 		console.log(`${indent}[${pathDebugName}]  early set (connected) - pathingStatus: `, refOldStatus, "->", ref.pathingStatus, `[${++pathCount}]`)
 		if (refOldStatus === 2 && ref.pathingStatus === 1) oneWayPropagation = true
 	} else if (oneWay) {

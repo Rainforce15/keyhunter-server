@@ -109,7 +109,7 @@ function pathLoc(loc) {
 
 function pathConnections(connection, oneWay) {
 	let oneWayPropagation = false
-	let {ref, src} = connection
+	let {src, ref} = connection
 
 	if (ref.pathingStatus === 1 || ref.pathingStatus === 2 && src.pathingStatus !== 1) {
 		return ref.pathingStatus === 1
@@ -121,6 +121,9 @@ function pathConnections(connection, oneWay) {
 		let refOldStatus = ref.pathingStatus
 		ref.pathingStatus = src.pathingStatus
 		connection.pathingStatus = src.pathingStatus
+		if (connection.connectionType === "connectsOneWayTo" && ref["connectsOneWayFrom"]?.[src.basename]) ref["connectsOneWayFrom"][src.basename].pathingStatus = src.pathingStatus
+		else if (connection.connectionType === "connectsOneWayFrom" && ref["connectsOneWayTo"]?.[src.basename]) ref["connectsOneWayTo"][src.basename].pathingStatus = src.pathingStatus
+		else if (ref["connectsTo"]?.[src.basename]) ref["connectsTo"][src.basename].pathingStatus = src.pathingStatus
 		if (refOldStatus === 2 && ref.pathingStatus === 1) oneWayPropagation = true
 	} else if (oneWay) {
 		ref.pathingStatus = 2
