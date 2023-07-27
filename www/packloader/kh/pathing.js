@@ -100,7 +100,7 @@ function pathLoc(loc) {
 	}
 }
 
-function pathConnections(connection, startingPos, oneWay) {
+function pathConnection(connection, startingPos, oneWay) {
 	let pathDebugName
 	let originalStatus
 	let oneWayPropagation = false
@@ -219,7 +219,7 @@ function checkOneWayConnection(connection, connectionName, oneWayPropagation, in
 }
 
 function checkOneWayLoop(connection, startingPos, indent) {
-	if (pathConnections(connection, startingPos, true)) {
+	if (pathConnection(connection, startingPos, true)) {
 		let loc = connection.src
 		let prevStatus = loc.pathingStatus
 		loc.pathingStatus = 2
@@ -243,12 +243,12 @@ function pathAllSub(connectionType, loc, indent) {
 
 function basicPathing(connection, startingPos) {
 	if (connection.length === 0) {
-		pathConnections(connection, startingPos)
+		pathConnection(connection, startingPos)
 	} else {
 		let factorsFound = false
 		for (let factors of connection) {
 			if (items.evaluateAnd(factors, `connectsTo ${connection.basename} of ${connection.src.basename}`)) {
-				pathConnections(connection, startingPos)
+				pathConnection(connection, startingPos)
 				factorsFound = true
 				break
 			}
