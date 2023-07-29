@@ -194,7 +194,7 @@ function sendState() {
 function receiveState() {
 	for (let memType in memGroups) {
 		let group = memGroups[memType]
-		for(let i = 0; i < group.length; i++) {
+		for (let i = 0; i < group.length; i++) {
 			let payload = JSON.stringify({o:"readbyterange", l:group[i][1] - group[i][0] + 1, a:group[i][0], d:memType})
 			if (util.isSocketOpen(socket)) socket.send(payload)
 		}

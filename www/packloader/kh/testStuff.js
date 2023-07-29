@@ -65,7 +65,7 @@ export function testImages(t) {
 	setTimeout(() => {
 		let testImagesDiv = document.createElement("div")
 		addTestHeader("Image Test", testImagesDiv, document.body)
-		for(let exf in extracted) {
+		for (let exf in extracted) {
 			if (
 				exf.startsWith("img/") && (
 				exf.endsWith(".png") ||

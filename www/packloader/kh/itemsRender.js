@@ -65,12 +65,12 @@ export function updateAllItemRender() {
 export function updateItemRender(item) {
 	let itemImgs = item.imgDomRefs
 	util.log(itemImgs)
-	for(let itemImg of itemImgs) {
+	for (let itemImg of itemImgs) {
 		setImgForStage(item, itemImg)
 	}
 	let itemTitles = item.titleDomRefs
 	util.log(itemTitles)
-	for(let itemTitle of itemTitles) {
+	for (let itemTitle of itemTitles) {
 		setTitleForStage(item, itemTitle)
 	}
 }

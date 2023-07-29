@@ -142,7 +142,7 @@ function raiseCurStageToCounted(item) {
 	let locMemIndex = memory.memIndex[memType]
 	let memForType = itemCountMem[memType]
 	item.curStage = 0
-	for(let i = 0; i < memForType.length; i++) {
+	for (let i = 0; i < memForType.length; i++) {
 		let val = locMemIndex[memForType[i][0]]
 		if (item["countMap"]) {
 			let offset = 8 * i
