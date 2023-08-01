@@ -25,7 +25,6 @@ export function pathMaps(elements) {
 		let map = elements[mapName]
 		for (let locName in map) {
 			let loc = map[locName]
-			if (loc === undefined) continue
 			resetPathingStatus(loc)
 			if (isEntryPoint(loc)) {
 				if (_debug) console.log("valid entry point detected: ", loc.basename)
@@ -44,13 +43,15 @@ export function pathMaps(elements) {
 	_debug = false
 }
 
-export function resetPathingStatus(loc) {
+function resetPathingStatus(loc) {
 	loc.pathingStatus = 0
-	for (let connectionName in loc["connectsTo"] || {}) {
-		loc["connectsTo"][connectionName].pathingStatus = 0
+	let connectsTo = loc["connectsTo"]
+	if (connectsTo) for (let conName in connectsTo) {
+		connectsTo[conName].pathingStatus = 0
 	}
-	for (let connectionName in loc["connectsOneWayTo"] || {}) {
-		loc["connectsOneWayTo"][connectionName].pathingStatus = 0
+	let connectsOneWayTo = loc["connectsOneWayTo"]
+	if (connectsOneWayTo) for (let conName in connectsOneWayTo) {
+		connectsOneWayTo[conName].pathingStatus = 0
 	}
 }
 
@@ -62,10 +63,11 @@ function isEntryPoint(loc) {
 			return locEntryPoint
 		} else {
 			if (_debug && locEntryPoint.length > 0) console.log(`entry point ${loc.basename} testing factors: `)
-			for (let factors of locEntryPoint) {
+			for (let i = 0; i < locEntryPoint.length; i++) {
+				let factors = locEntryPoint[i]
 				if (_debug) console.log("    trying", JSON.stringify(factors))
 				if (items.evaluateAnd(factors, `entryPoint of ${loc.basename}`)) {
-					if (_debug) console.log("      valid factor.")
+					if (_debug) console.log("      valid factors.")
 					return true
 				}
 			}
@@ -75,184 +77,78 @@ function isEntryPoint(loc) {
 }
 
 function pathLoc(loc) {
-	let pathDebugName
-	let originalStatus
-
 	if (_debug) {
-		originalStatus = loc.pathingStatus
-		indent += "    "
-		pathDebugName = `${loc.parentMapName}::${loc.basename}`
-		console.log(indent+"["+pathDebugName+"] pathing...")
+		console.log(indent + "pathing: ", loc.basename)
+		indent += "  "
 	}
+	let connectsTo = loc["connectsTo"] || {}
+	for (let conName in connectsTo) {
+		if (_debug) console.log(indent + "connecting to: ", conName)
+		let con = connectsTo[conName]
 
-	checkLocTwoWayConnections(loc, indent)
-	let oneWayPropagation = checkOneWayConnections(loc, false, indent)
+		let ref;
+		if (con.src === loc) ref = con.ref
+		else ref = con.src
 
-	if (oneWayPropagation) {
-		if (_debug) console.log(`${indent}  propagate two-way connections due to one-way changes: ${Object.keys(loc["connectsTo"]).length}`, `[${++pathCount}]`)
-		pathAllSub("connectsTo", loc, indent)
-		if (_debug) console.log(`${indent}  propagate one-way connections due to one-way changes: ${Object.keys(loc["connectsOneWayTo"]).length}`, `[${++pathCount}]`)
-		pathAllSub("connectsOneWayTo", loc, indent)
-	}
-	if (_debug) {
-		console.log(`${indent}[${loc.parentMapName}::${loc.basename}] resulting pathingStatus: `, `x/`, originalStatus, "->", loc.pathingStatus, `[${++pathCount}]`)
-		indent = indent.substring(4)
-	}
-}
-
-function pathConnection(connection, startingPos, oneWay) {
-	let pathDebugName
-	let originalStatus
-	let oneWayPropagation = false
-	let src, ref
-	if (startingPos === connection.src) {
-		src = connection.src
-		ref = connection.ref
-	} else {
-		src = connection.ref
-		ref = connection.src
-	}
-
-	if (_debug) {
-		originalStatus = ref.pathingStatus
-		indent += "    "
-		pathDebugName = `${ref.parentMapName}::${ref.basename}`
-		//console.log(indent+"["+pathDebugName+"] pathing...")
-	}
-
-
-	if (ref.pathingStatus === 2 || ref.pathingStatus === 1 && src.pathingStatus < 2) {
-		if (_debug) {
-			console.log(`${indent}[${pathDebugName}]  early escape - pathingStatus: `, ref.pathingStatus, `[${++pathCount}]`, connection)
-			indent = indent.substring(4)
-		}
-		return ref.pathingStatus === 2
-	}
-	if (isEntryPoint(ref)) {
-		ref.pathingStatus = 2
-		connection.pathingStatus = 2
-		if (_debug) console.log(`${indent}[${pathDebugName}]  early set (entry point) - pathingStatus: `, ref.pathingStatus, `[${++pathCount}]`)
-	} else if (!oneWay) {
-		let refOldStatus = ref.pathingStatus
-		ref.pathingStatus = src.pathingStatus
-		connection.pathingStatus = src.pathingStatus
-		if (_debug) console.log(`${indent}[${pathDebugName}]  early set (connected) - pathingStatus: `, refOldStatus, "->", ref.pathingStatus, `[${++pathCount}]`)
-		if (refOldStatus === 1 && ref.pathingStatus === 2) oneWayPropagation = true
-	} else if (oneWay) {
-		ref.pathingStatus = 1
-		connection.pathingStatus = 1
-		if (_debug) console.log(`${indent}[${pathDebugName}]  early set (one way) - pathingStatus: `, ref.pathingStatus, `[${++pathCount}]`)
-	}
-
-	checkLocTwoWayConnections(ref, indent)
-	oneWayPropagation = checkOneWayConnections(ref, oneWayPropagation, indent)
-
-	if (oneWayPropagation) {
-		if (_debug) console.log(`${indent}  propagate two-way connections due to one-way changes: ${Object.keys(ref["connectsTo"]).length}`, `[${++pathCount}]`)
-		pathAllSub("connectsTo", ref, indent)
-		if (_debug) console.log(`${indent}  propagate one-way connections due to one-way changes: ${Object.keys(ref["connectsOneWayTo"]).length}`, `[${++pathCount}]`)
-		pathAllSub("connectsOneWayTo", ref, indent)
-	}
-
-	if (_debug) {
-		console.log(`${indent}[${ref.parentMapName}::${ref.basename}] resulting pathingStatus: `, `${src.pathingStatus}/`, originalStatus, "->", ref.pathingStatus, `[${++pathCount}]`)
-		indent = indent.substring(4)
-	}
-	return ref.pathingStatus === 2
-}
-
-function checkLocTwoWayConnections(loc, indent) {
-	let conCount = 0
-	let locConnectsTo = loc["connectsTo"]
-	if (_debug && locConnectsTo) console.log(`${indent}  two-way connections: ${Object.keys(locConnectsTo).length}`, `[${++pathCount}]`)
-	for (let connectionName in locConnectsTo || {}) {
-		let connection = locConnectsTo[connectionName]
-		if (connection.ref) {
-			if (_debug) console.log(`${indent}  ${++conCount}/${Object.keys(locConnectsTo).length} ${connection.ref.parentMapName}::${connection.ref.basename}`, `[${++pathCount}]`)
-			basicPathing(connection, loc)
-		} else if (!connection._broken) {
-			connection._broken = true
-			console.warn(`broken ref: from ${loc.parentMapName}::${loc.basename} to ${connectionName.indexOf("::") < 0 ? loc.parentMapName + "::" : ""}${connectionName}`)
-		}
-	}
-}
-
-function checkOneWayConnections(loc, oneWayPropagation, indent) {
-	let conCount = 0
-	let locConnectsOneWayTo = loc["connectsOneWayTo"]
-	if (_debug && locConnectsOneWayTo) console.log(`${indent}  one-way connections: ${Object.keys(locConnectsOneWayTo).length}`, `[${++pathCount}]`)
-	for (let connectionName in locConnectsOneWayTo || {}) {
-		if (_debug) console.log(`${indent}  ${++conCount}/${Object.keys(locConnectsOneWayTo).length} ${connectionName}`, `[${++pathCount}]`)
-		let connection = locConnectsOneWayTo[connectionName]
-		let oneWayIndicator = checkOneWayConnection(connection, connectionName, oneWayPropagation, indent)
-		if (oneWayIndicator !== undefined) oneWayPropagation = oneWayIndicator
-	}
-	return oneWayPropagation
-}
-
-function checkOneWayConnection(connection, connectionName, oneWayPropagation, indent) {
-	let loc = connection.src
-	if (connection.ref) {
-		if (connection.ref.pathingStatus === 2) {
-			let prevStatus = loc.pathingStatus
-			loc.pathingStatus = 2
-			connection.pathingStatus = 2
-			if (_debug) console.log(`${indent}[${loc.parentMapName}::${loc.basename}] set after reconnecting one way - pathingStatus: `, prevStatus, "->", loc.pathingStatus, `[${++pathCount}]`)
-			if (prevStatus === 1) oneWayPropagation = true
-		}
-		if (connection.ref.pathingStatus) return
-		if (connection.length === 0) {
-			oneWayPropagation = checkOneWayLoop(connection, loc, indent)
-		} else {
-			for (let factors of connection) {
-				if (items.evaluateAnd(factors, `connectsOneWayTo ${connectionName} of ${loc.basename}`)) {
-					oneWayPropagation = checkOneWayLoop(connection, loc, indent)
-					break
+		if (hasValidFactors(con, loc, ref)) {
+			if (ref.pathingStatus > loc.pathingStatus) {
+				if (_debug) console.log(indent + `  taking status from higher right hand location (${loc.pathingStatus} -> ${ref.pathingStatus})`)
+			} else if (ref.pathingStatus < loc.pathingStatus) {
+				if (_debug) console.log(indent + "  going on to right hand location")
+				ref.pathingStatus = loc.pathingStatus
+				pathLoc(ref)
+				if (ref.pathingStatus > loc.pathingStatus) {
+					if (_debug) console.log(indent + `  taking status from returned higher right hand location (${loc.pathingStatus} -> ${ref.pathingStatus})`)
 				}
 			}
+			loc.pathingStatus = ref.pathingStatus
+			con.pathingStatus = ref.pathingStatus
 		}
-	} else if (!connection._broken) {
-		connection._broken = true
-		console.warn(`broken ref: from ${loc.parentMapName}::${loc.basename} to ${connectionName.indexOf("::") < 0 ? loc.parentMapName + "::" : ""}${connectionName}`)
 	}
-	return oneWayPropagation
+	let connectsOneWayTo = loc["connectsOneWayTo"] || {}
+	for (let conName in connectsOneWayTo) {
+		if (_debug) console.log(indent + "connecting oneway to: ", conName)
+		let con = connectsOneWayTo[conName]
+		let ref = con.ref
+
+		if (hasValidFactors(con, loc, ref)) {
+			if (ref.pathingStatus < 2) {
+				if (_debug) console.log(indent + "going on to right hand location")
+				ref.pathingStatus = 1
+				pathLoc(ref)
+			} else {
+				if (_debug) console.log(indent + "right hand location already pathed and superior")
+				loc.pathingStatus = ref.pathingStatus
+			}
+			con.pathingStatus = ref.pathingStatus
+		}
+	}
+
+	let connectsOneWayFrom = loc["connectsOneWayFrom"] || {}
+	for (let conName in connectsOneWayFrom) {
+		if (_debug) console.log(indent + "connecting oneway from: ", conName)
+		let con = connectsOneWayFrom[conName]
+		let src = con.src
+		let ref = loc
+		if (src.pathingStatus === 1 && ref.pathingStatus === 2) {
+			src.pathingStatus = ref.pathingStatus
+			con.pathingStatus = ref.pathingStatus
+			pathLoc(src)
+		}
+	}
+
+	indent = indent.slice(2)
+	return loc.pathingStatus
 }
 
-function checkOneWayLoop(connection, startingPos, indent) {
-	if (pathConnection(connection, startingPos, true)) {
-		let loc = connection.src
-		let prevStatus = loc.pathingStatus
-		loc.pathingStatus = 2
-		if (_debug) console.log(`${indent}[${loc.parentMapName}::${loc.basename}] set after reconnecting one way - pathingStatus: `, prevStatus, "->", loc.pathingStatus, `[${++pathCount}]`)
-		if (prevStatus === 1) return true
+function hasValidFactors(con, loc, ref) {
+	if (con.length === 0) return true
+	for (let i = 0; i < con.length; i++) {
+		let factors = con[i]
+		if (items.evaluateAnd(factors, `factors of ${loc.basename} -> ${ref.basename}`)) {
+			if (_debug) console.log(indent + "  valid factors.")
+			return true
+		}
 	}
 	return false
-}
-
-function pathAllSub(connectionType, loc, indent) {
-	let connections = loc[connectionType]
-	let conCount = 0
-	for (let connectionName in connections || {}) {
-		let connection = connections[connectionName]
-		if (connection.ref) {
-			if (_debug) console.log(`${indent}  ${++conCount}/${Object.keys(connections).length} ${connection.ref.parentMapName}::${connection.ref.basename}`, `[${++pathCount}]`)
-			basicPathing(connection, loc)
-		}
-	}
-}
-
-function basicPathing(connection, startingPos) {
-	if (connection.length === 0) {
-		pathConnection(connection, startingPos)
-	} else {
-		let factorsFound = false
-		for (let factors of connection) {
-			if (items.evaluateAnd(factors, `connectsTo ${connection.basename} of ${connection.src.basename}`)) {
-				pathConnection(connection, startingPos)
-				factorsFound = true
-				break
-			}
-		}
-		if (_debug && !factorsFound) console.log(`${indent}   no valid factors.`, `[${++pathCount}]`)
-	}
 }
