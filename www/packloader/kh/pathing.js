@@ -81,31 +81,34 @@ function pathLoc(loc) {
 		console.log(indent + "pathing: ", loc.basename)
 		indent += "  "
 	}
-	let connectsTo = loc["connectsTo"] || {}
+
+	pathConnectsTo(loc["connectsTo"] || {}, loc)
+	pathConnectsOneWayTo(loc["connectsOneWayTo"] || {}, loc)
+	pathConnectsOneWayFrom(loc["connectsOneWayFrom"] || {}, loc)
+
+	if (_debug) indent = indent.slice(2)
+	return loc.pathingStatus
+}
+
+function pathConnectsTo(connectsTo, loc) {
 	for (let conName in connectsTo) {
 		if (_debug) console.log(indent + "connecting to: ", conName)
 		let con = connectsTo[conName]
-
-		let ref;
-		if (con.src === loc) ref = con.ref
-		else ref = con.src
+		let ref = con.src === loc ? con.ref : con.src;
 
 		if (hasValidFactors(con, loc, ref)) {
-			if (ref.pathingStatus > loc.pathingStatus) {
-				if (_debug) console.log(indent + `  taking status from higher right hand location (${loc.pathingStatus} -> ${ref.pathingStatus})`)
-			} else if (ref.pathingStatus < loc.pathingStatus) {
-				if (_debug) console.log(indent + "  going on to right hand location")
+			if (ref.pathingStatus < loc.pathingStatus) {
 				ref.pathingStatus = loc.pathingStatus
 				pathLoc(ref)
-				if (ref.pathingStatus > loc.pathingStatus) {
-					if (_debug) console.log(indent + `  taking status from returned higher right hand location (${loc.pathingStatus} -> ${ref.pathingStatus})`)
-				}
 			}
+			if (_debug) console.log(indent + `  updating status of ${loc.basename}: ${loc.pathingStatus} -> ${ref.pathingStatus}, ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
 			loc.pathingStatus = ref.pathingStatus
 			con.pathingStatus = ref.pathingStatus
 		}
 	}
-	let connectsOneWayTo = loc["connectsOneWayTo"] || {}
+}
+
+function pathConnectsOneWayTo(connectsOneWayTo, loc) {
 	for (let conName in connectsOneWayTo) {
 		if (_debug) console.log(indent + "connecting oneway to: ", conName)
 		let con = connectsOneWayTo[conName]
@@ -113,24 +116,29 @@ function pathLoc(loc) {
 
 		if (hasValidFactors(con, loc, ref)) {
 			if (ref.pathingStatus < 2) {
-				if (_debug) console.log(indent + "going on to right hand location")
 				ref.pathingStatus = 1
 				pathLoc(ref)
 			} else {
-				if (_debug) console.log(indent + "right hand location already pathed and superior")
+				if (_debug) console.log(indent + `  right hand location already pathed and superior; updating status of ${loc.basename}: ${loc.pathingStatus} -> ${ref.pathingStatus}`)
 				loc.pathingStatus = ref.pathingStatus
 			}
+			if (_debug) console.log(indent + `  updating status of ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
 			con.pathingStatus = ref.pathingStatus
 		}
 	}
+}
 
-	let connectsOneWayFrom = loc["connectsOneWayFrom"] || {}
+function pathConnectsOneWayFrom(connectsOneWayFrom, loc) {
 	for (let conName in connectsOneWayFrom) {
 		if (_debug) console.log(indent + "connecting oneway from: ", conName)
 		let con = connectsOneWayFrom[conName]
 		let src = con.src
 		let ref = loc
 		if (src.pathingStatus === 1 && ref.pathingStatus === 2) {
+			if (_debug) {
+				console.log(indent + `  updating status of ${src.basename}: ${src.pathingStatus} -> ${ref.pathingStatus}`)
+				console.log(indent + `  updating status of ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
+			}
 			src.pathingStatus = ref.pathingStatus
 			con.pathingStatus = ref.pathingStatus
 			pathLoc(src)
