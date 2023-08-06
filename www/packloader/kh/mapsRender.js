@@ -2,7 +2,7 @@ import {elements, getFactored, hasDefinedConnections} from "./maps.js";
 import {extracted} from "./packLoader.js";
 import * as items from "./items.js";
 
-const pathValues = {0: "unreachable", 1: "reachable", 2: "oneway trip"}
+const pathValues = {0: "unreachable", 1: "oneway trip", 2: "reachable"}
 
 let _showAllLocations = false
 let _showAccessInMesh = false
