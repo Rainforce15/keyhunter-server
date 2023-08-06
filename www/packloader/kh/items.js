@@ -203,6 +203,7 @@ function getSumSubStage(sumtrahend) {
 	if (typeof sumtrahend === "number") {
 		return sumtrahend
 	} else {
+		if (elements[sumtrahend] === undefined) console.warn("item " + sumtrahend + " not found")
 		return elements[sumtrahend].curStage
 	}
 }
