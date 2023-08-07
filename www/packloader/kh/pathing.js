@@ -1,6 +1,7 @@
 import * as items from "./items.js"
 
 let indent = ""
+let traceLog
 let pathCount = 0
 
 export let _debug = false
@@ -18,8 +19,13 @@ export function debug(value) {
 	 2: reachable
  */
 
+function trace(msgGenerator) {
+	if (_debug) traceLog += msgGenerator() + "\n"
+}
+
 export function pathMaps(elements) {
 	let entryPoints = []
+	if (_debug) traceLog = ""
 	//clear pathing
 	for (let mapName in elements) {
 		let map = elements[mapName]
@@ -27,19 +33,20 @@ export function pathMaps(elements) {
 			let loc = map[locName]
 			resetPathingStatus(loc)
 			if (isEntryPoint(loc)) {
-				if (_debug) console.log("valid entry point detected: ", loc.basename)
+				trace(_ => "valid entry point detected: " + loc.basename)
 				loc.pathingStatus = 2
 				entryPoints.push(loc)
 			}
 		}
 	}
-	if (_debug) console.log("Detected Entry Points: ", entryPoints.map(e=>`${e.parentMapName}::${e.basename}`).join(",  "))
+	trace(_ => "Detected Entry Points: " + entryPoints.map(e=>`${e.parentMapName}::${e.basename}`).join(",  "))
 	//go forth and take the land
 	for (let loc of entryPoints) {
-		if (_debug) console.log("starting from: ", loc.basename)
+		trace(_ => "starting from: " + loc.basename)
 		pathCount = 0
 		pathLoc(loc)
 	}
+	if (_debug) console.log(traceLog)
 	_debug = false
 }
 
@@ -59,15 +66,15 @@ function isEntryPoint(loc) {
 	let locEntryPoint = loc["entryPoint"]
 	if (locEntryPoint) {
 		if (typeof locEntryPoint === "boolean") {
-			if (_debug) console.log("simple entry point: ", loc.basename)
+			trace(_ => "simple entry point: " + loc.basename)
 			return locEntryPoint
 		} else {
-			if (_debug && locEntryPoint.length > 0) console.log(`entry point ${loc.basename} testing factors: `)
+			if (locEntryPoint.length > 0) trace(_ => `entry point ${loc.basename} testing factors: `)
 			for (let i = 0; i < locEntryPoint.length; i++) {
 				let factors = locEntryPoint[i]
-				if (_debug) console.log("    trying", JSON.stringify(factors))
+				trace(_ => "    trying" + JSON.stringify(factors))
 				if (items.evaluateAnd(factors, `entryPoint of ${loc.basename}`)) {
-					if (_debug) console.log("      valid factors.")
+					trace(_ => "      valid factors.")
 					return true
 				}
 			}
@@ -78,7 +85,7 @@ function isEntryPoint(loc) {
 
 function pathLoc(loc) {
 	if (_debug) {
-		console.log(indent + "pathing: ", loc.basename)
+		trace(_ => indent + "pathing: " + loc.basename)
 		indent += "  "
 	}
 
@@ -92,7 +99,7 @@ function pathLoc(loc) {
 
 function pathConnectsTo(connectsTo, loc) {
 	for (let conName in connectsTo) {
-		if (_debug) console.log(indent + "connecting to: ", conName)
+		trace(_ => indent + "connecting to: " + conName)
 		let con = connectsTo[conName]
 		let ref = con.src === loc ? con.ref : con.src;
 
@@ -101,7 +108,7 @@ function pathConnectsTo(connectsTo, loc) {
 				ref.pathingStatus = loc.pathingStatus
 				pathLoc(ref)
 			}
-			if (_debug) console.log(indent + `  updating status of ${loc.basename}: ${loc.pathingStatus} -> ${ref.pathingStatus}, ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
+			trace(_ => indent + `  updating status of ${loc.basename}: ${loc.pathingStatus} -> ${ref.pathingStatus}, ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
 			loc.pathingStatus = ref.pathingStatus
 			con.pathingStatus = ref.pathingStatus
 		}
@@ -110,19 +117,25 @@ function pathConnectsTo(connectsTo, loc) {
 
 function pathConnectsOneWayTo(connectsOneWayTo, loc) {
 	for (let conName in connectsOneWayTo) {
-		if (_debug) console.log(indent + "connecting oneway to: ", conName)
+		trace(_ => indent + "connecting oneway to: " + conName)
 		let con = connectsOneWayTo[conName]
 		let ref = con.ref
 
 		if (hasValidFactors(con, loc, ref)) {
 			if (ref.pathingStatus < 2) {
 				ref.pathingStatus = 1
+				trace(_ => indent + `  prelimanary status of ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
 				pathLoc(ref)
 			} else {
-				if (_debug) console.log(indent + `  right hand location already pathed and superior; updating status of ${loc.basename}: ${loc.pathingStatus} -> ${ref.pathingStatus}`)
-				loc.pathingStatus = ref.pathingStatus
+				if (loc.pathingStatus < ref.pathingStatus) {
+					trace(_ => indent + `  right hand location already pathed and superior; updating status of ${loc.basename}: ${loc.pathingStatus} -> ${ref.pathingStatus}, redoing everything`)
+					loc.pathingStatus = ref.pathingStatus
+					pathLoc(loc)
+				} else {
+					trace(_ => indent + "  right hand location already pathed and equal.")
+				}
 			}
-			if (_debug) console.log(indent + `  updating status of ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
+			trace(_ => indent + `  updating status of ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
 			con.pathingStatus = ref.pathingStatus
 		}
 	}
@@ -130,15 +143,13 @@ function pathConnectsOneWayTo(connectsOneWayTo, loc) {
 
 function pathConnectsOneWayFrom(connectsOneWayFrom, loc) {
 	for (let conName in connectsOneWayFrom) {
-		if (_debug) console.log(indent + "connecting oneway from: ", conName)
+		trace(_ => indent + "connecting oneway from: " + conName)
 		let con = connectsOneWayFrom[conName]
 		let src = con.src
 		let ref = loc
 		if (src.pathingStatus === 1 && ref.pathingStatus === 2) {
-			if (_debug) {
-				console.log(indent + `  updating status of ${src.basename}: ${src.pathingStatus} -> ${ref.pathingStatus}`)
-				console.log(indent + `  updating status of ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
-			}
+			trace(_ => indent + `  updating status of ${src.basename}: ${src.pathingStatus} -> ${ref.pathingStatus}`)
+			trace(_ => indent + `  updating status of ${conName}: ${con.pathingStatus} -> ${ref.pathingStatus}`)
 			src.pathingStatus = ref.pathingStatus
 			con.pathingStatus = ref.pathingStatus
 			pathLoc(src)
@@ -154,7 +165,7 @@ function hasValidFactors(con, loc, ref) {
 	for (let i = 0; i < con.length; i++) {
 		let factors = con[i]
 		if (items.evaluateAnd(factors, `factors of ${loc.basename} -> ${ref.basename}`)) {
-			if (_debug) console.log(indent + "  valid factors.")
+			trace(_ => indent + "  valid factors.")
 			return true
 		}
 	}
